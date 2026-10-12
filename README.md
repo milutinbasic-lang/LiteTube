@@ -3,8 +3,11 @@
 A lightweight, private YouTube client for Android.
 
 - **No account.** Nothing to sign in to. Subscriptions are stored only on your phone.
-- **No tracking.** No analytics, no crash reporters, no ads, no Google Play Services, no Firebase.
-  The only permission is `INTERNET`.
+- **No tracking.** No analytics, no crash reporters, no Google Play Services, no Firebase.
+- **No ads.** YouTube's ads are never even downloaded, and sponsor segments inside videos are
+  skipped automatically with [SponsorBlock](https://sponsor.ajay.app).
+- **Background playback.** Keeps playing with the screen off or while using other apps, with
+  notification, lock-screen and headphone/Bluetooth controls.
 - **Built for low-end phones.** Runs on Android 5.0+ with a small APK, small memory footprint and
   hardware-friendly video formats.
 - **Dark mode.** Follow system / Light / Dark / Black (AMOLED).
@@ -16,16 +19,45 @@ A lightweight, private YouTube client for Android.
 |---|---|
 | Home | Newest videos from your subscriptions, newest first. No recommendation algorithm. Cached, so it opens instantly (even offline). Pull to refresh. |
 | Search | Videos and channels, with infinite scrolling. |
-| Player | Quality picker, **audio-only mode**, fullscreen on rotate, "Up next" list, share, subscribe. |
+| Player | Quality picker, **audio-only mode**, **background playback**, sponsor skipping, fullscreen on rotate, "Up next" list, share, subscribe. |
 | Channel | Channel info and all uploads, with subscribe/unsubscribe. |
 | Subscriptions | List, unsubscribe (long-press), **import** from NewPipe (`.json`) or Google Takeout (`subscriptions.csv`), **export** (NewPipe-compatible). |
 | Links | Opens YouTube links clicked or shared from other apps. |
 
 Long-press any video for: *Play audio only*, *Open channel*, *Share*.
 
+## Ad blocking
+
+Browsers like Brave block ads by filtering the requests a web page makes. LiteTube doesn't need a
+filter list: it never loads YouTube's web pages or player. It asks for the video files directly,
+so pre-roll, mid-roll, banner and overlay ads are **never requested at all**. There's nothing to block
+and no data is spent on them.
+
+What a request blocker *can't* catch are ads read by the creator inside the video itself.
+For those, LiteTube uses **SponsorBlock**, a free, open, community-maintained database of
+timestamps, and jumps over them automatically. Choose what to skip in *Settings → Ad and sponsor
+blocking*: sponsors, self-promotion, "like and subscribe" reminders (on by default), and optionally
+intros, endcards, previews, filler, and non-music sections of music videos.
+
+SponsorBlock lookups are private: only the first 4 characters of a SHA-256 hash of the video ID
+are sent. The server replies with segments for every video sharing that prefix, and the app picks
+the right one locally. Skips are triggered by the player at exact positions, without a
+polling loop, so it costs essentially no CPU. Turn it off in Settings to make no requests at all.
+
+## Background playback
+
+- Press **Home**, switch apps or turn the screen off: playback continues, with a media
+  notification and lock-screen controls. Headphone and Bluetooth buttons work too.
+- While in the background, video decoding is switched off and only the audio plays, which
+  saves a lot of battery on weak phones. The picture comes back when you return.
+- Press **Back** in the player, or pause and swipe the notification away, to stop.
+- Tapping the notification reopens the player without restarting the video.
+- Prefer the old behaviour? Turn off *Settings → Playback → Background playback*.
+
 ## How it stays light
 
 - Plain Android Views and RecyclerView. No Jetpack Compose, no WebView.
+- One shared player instance for the whole app. In the background only audio is decoded.
 - Small list thumbnails (picks the smallest image ≥ 320px), loaded as RGB_565 bitmaps with capped
   memory/disk caches. Thumbnails can be switched off entirely.
 - **Low-power playback** (on by default) prefers H.264 at ≤30fps, which nearly every phone decodes in
@@ -43,6 +75,10 @@ Long-press any video for: *Play audio only*, *Open channel*, *Share*.
   disabled.
 - Videos still stream from YouTube's servers, so YouTube can see your IP address. Use a VPN or Tor
   (e.g. Orbot in VPN mode) if you need to hide it.
+- Permissions: `INTERNET`, plus `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` and
+  `WAKE_LOCK` for background playback. These are granted automatically and don't give access to
+  any of your data. No location, contacts, storage, camera or microphone.
+- The only servers contacted are YouTube's and, if enabled, SponsorBlock's (`sponsor.ajay.app`).
 
 ## Getting the APK
 
@@ -89,7 +125,7 @@ is available.
 
 ## Known limitations
 
-- No background playback, picture-in-picture or downloads yet. Playback pauses when you leave the app.
+- No picture-in-picture, play queue or downloads yet.
 - No playlists, comments or subtitles yet.
 - On Android 12+, tapping YouTube links opens LiteTube only if you enable it under
   *App info → Open by default → Add link*. Sharing a link to LiteTube always works.
@@ -101,7 +137,8 @@ app/src/main/java/app/litetube/
 ├── App.kt                 init: NewPipe Extractor, image loader, theme
 ├── net/                   OkHttp-based downloader for NewPipe Extractor
 ├── data/                  YouTube access, subscriptions, feed cache, settings
-├── player/                stream selection + YouTube-compatible media sources
+├── player/                shared player, background service, SponsorBlock,
+│                          stream selection, YouTube-compatible media sources
 └── ui/                    activities, list adapter, helpers
 ```
 

@@ -6,6 +6,7 @@ import app.litetube.data.Prefs
 import app.litetube.data.Subscriptions
 import app.litetube.net.Http
 import app.litetube.net.OkHttpDownloader
+import app.litetube.player.PlayerController
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
@@ -23,6 +24,7 @@ class App : Application(), ImageLoaderFactory {
         Prefs.applyNightMode()
         Subscriptions.init(this)
         FeedCache.init(this)
+        PlayerController.init(this)
 
         val locale = Locale.getDefault()
         NewPipe.init(

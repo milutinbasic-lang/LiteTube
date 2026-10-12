@@ -13,6 +13,11 @@ object Prefs {
     const val SHOW_THUMBNAILS = "show_thumbnails"
     const val SHOW_RELATED = "show_related"
     const val AUTO_REFRESH = "auto_refresh"
+    const val BACKGROUND_PLAY = "background_play"
+    const val SPONSORBLOCK = "sponsorblock"
+    const val SPONSORBLOCK_CATEGORIES = "sponsorblock_categories"
+
+    private val DEFAULT_SPONSOR_CATEGORIES = setOf("sponsor", "selfpromo", "interaction")
 
     private lateinit var sp: SharedPreferences
 
@@ -28,6 +33,10 @@ object Prefs {
     val showThumbnails: Boolean get() = sp.getBoolean(SHOW_THUMBNAILS, true)
     val showRelated: Boolean get() = sp.getBoolean(SHOW_RELATED, true)
     val autoRefresh: Boolean get() = sp.getBoolean(AUTO_REFRESH, true)
+    val backgroundPlay: Boolean get() = sp.getBoolean(BACKGROUND_PLAY, true)
+    val sponsorBlock: Boolean get() = sp.getBoolean(SPONSORBLOCK, true)
+    val sponsorBlockCategories: Set<String>
+        get() = sp.getStringSet(SPONSORBLOCK_CATEGORIES, null) ?: DEFAULT_SPONSOR_CATEGORIES
 
     fun applyNightMode() {
         AppCompatDelegate.setDefaultNightMode(

@@ -15,13 +15,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import androidx.media3.common.AudioAttributes
-import androidx.media3.common.C
-import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.DefaultLoadControl
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
 import app.litetube.R
@@ -34,8 +29,7 @@ import app.litetube.data.pickImage
 import app.litetube.data.toListItems
 import app.litetube.databinding.ActivityPlayerBinding
 import app.litetube.databinding.HeaderVideoBinding
-import app.litetube.player.MediaSources
-import app.litetube.player.Playback
+import app.litetube.player.PlayerController
 import app.litetube.player.StreamPicker
 import coil.imageLoader
 import coil.load
@@ -48,40 +42,48 @@ import kotlinx.coroutines.launch
 import org.schabi.newpipe.extractor.stream.Description
 import org.schabi.newpipe.extractor.stream.StreamInfo
 
+/**
+ * Video screen. The player itself lives in [PlayerController] so audio keeps going in the
+ * background. Leaving with Home / screen off keeps playing; leaving with Back stops playback.
+ */
 @OptIn(UnstableApi::class)
 class PlayerActivity : BaseActivity() {
 
     companion object {
         private const val EXTRA_URL = "url"
         private const val EXTRA_AUDIO_ONLY = "audio_only"
+        const val EXTRA_RESUME = "resume"
 
         fun open(context: Context, url: String, audioOnly: Boolean = false) {
             context.startActivity(
                 Intent(context, PlayerActivity::class.java)
                     .putExtra(EXTRA_URL, url)
                     .putExtra(EXTRA_AUDIO_ONLY, audioOnly)
+                    // One player screen at a time, since they all share the one player.
+                    .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             )
         }
     }
 
     private lateinit var b: ActivityPlayerBinding
     private lateinit var header: HeaderVideoBinding
-    private lateinit var player: ExoPlayer
-    private val sources = MediaSources()
+    private val player get() = PlayerController.player
     private val related = ItemAdapter(
-        onVideoClick = { load(it.url, pushHistory = true) },
+        onVideoClick = { load(it.url, pushHistory = true, audioOnly = false) },
         onVideoLongClick = { view, item -> showVideoMenu(this, view, item) },
     )
 
-    // Videos opened from "Up next" reuse this screen (one player instance), with their own back stack.
+    // Videos opened from "Up next" reuse this screen, with their own back stack.
     private val history = ArrayDeque<String>()
     private var currentUrl: String? = null
-    private var info: StreamInfo? = null
-    private var maxHeight = Prefs.maxQuality
-    private var audioOnly = Prefs.audioOnly
-    private var usingHlsFallback = false
     private var loadJob: Job? = null
     private var descriptionExpanded = false
+
+    private val playerListener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            b.playerView.keepScreenOn = isPlaying
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,28 +94,19 @@ class PlayerActivity : BaseActivity() {
         b.list.layoutManager = LinearLayoutManager(this)
         b.list.adapter = ConcatAdapter(SingleViewAdapter(header.root), related)
 
-        player = buildPlayer()
         b.playerView.player = player
         b.playerView.setShowNextButton(false)
         b.playerView.setShowPreviousButton(false)
         b.playerView.setFullscreenButtonClickListener { toggleFullscreen() }
-        player.addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                b.playerView.keepScreenOn = isPlaying
-            }
+        player.addListener(playerListener)
 
-            override fun onPlayerError(error: PlaybackException) {
-                onPlaybackError(error)
-            }
-        })
+        PlayerController.onChanged = { updatePlaybackUi() }
+        PlayerController.onError = { toast(getString(R.string.error_playback, it.errorCodeName)) }
+        PlayerController.onSkipped = { toast(getString(R.string.sponsor_skipped)) }
 
         header.quality.setOnClickListener { chooseQuality() }
-        header.audioOnly.setOnClickListener {
-            audioOnly = !audioOnly
-            usingHlsFallback = false
-            restartPlayback()
-        }
-        header.share.setOnClickListener { currentUrl?.let { share(this, info?.name, it) } }
+        header.audioOnly.setOnClickListener { PlayerController.toggleAudioOnly() }
+        header.share.setOnClickListener { currentUrl?.let { share(this, PlayerController.info?.name, it) } }
         header.subscribe.setOnClickListener { toggleSubscription() }
         header.description.movementMethod = LinkMovementMethod.getInstance()
         header.description.setOnClickListener {
@@ -125,7 +118,7 @@ class PlayerActivity : BaseActivity() {
             override fun handleOnBackPressed() {
                 when {
                     isLandscape() -> exitFullscreen()
-                    history.isNotEmpty() -> load(history.removeLast(), pushHistory = false)
+                    history.isNotEmpty() -> load(history.removeLast(), pushHistory = false, audioOnly = false)
                     else -> {
                         isEnabled = false
                         onBackPressedDispatcher.onBackPressed()
@@ -145,39 +138,30 @@ class PlayerActivity : BaseActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
-        val url = intent.getStringExtra(EXTRA_URL) ?: return finish()
-        if (intent.getBooleanExtra(EXTRA_AUDIO_ONLY, false)) audioOnly = true
-        load(url, pushHistory = true)
+        // Opened from the notification: show whatever is playing.
+        val url = intent.getStringExtra(EXTRA_URL)
+            ?: PlayerController.currentUrl.takeIf { intent.getBooleanExtra(EXTRA_RESUME, false) }
+            ?: return finish()
+        load(url, pushHistory = true, audioOnly = intent.getBooleanExtra(EXTRA_AUDIO_ONLY, false))
     }
 
-    private fun buildPlayer(): ExoPlayer {
-        // Smaller buffers than the defaults (50s) keep RAM use and wasted data low.
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(15_000, 30_000, 1_500, 3_000)
-            .build()
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(C.USAGE_MEDIA)
-            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-            .build()
-        return ExoPlayer.Builder(this)
-            .setLoadControl(loadControl)
-            .setAudioAttributes(audioAttributes, true)
-            .setHandleAudioBecomingNoisy(true)
-            .build()
-    }
-
-    private fun load(url: String, pushHistory: Boolean) {
+    private fun load(url: String, pushHistory: Boolean, audioOnly: Boolean) {
         if (pushHistory) currentUrl?.takeIf { it != url }?.let { history.addLast(it) }
         while (history.size > 20) history.removeFirst()
-
         currentUrl = url
-        info = null
-        usingHlsFallback = false
         descriptionExpanded = false
         loadJob?.cancel()
-        player.stop()
-        player.clearMediaItems()
-        b.playerView.setDefaultArtwork(null)
+
+        // Already playing (returning from background, notification tap, or theme change):
+        // just show it, don't restart.
+        val playing = PlayerController.info
+        if (url == PlayerController.currentUrl && playing != null) {
+            showDetails(playing)
+            if (audioOnly && !PlayerController.audioOnly) PlayerController.toggleAudioOnly()
+            return
+        }
+
+        PlayerController.stop()
         related.submit(emptyList())
         header.details.isVisible = false
         header.state.loading()
@@ -185,21 +169,24 @@ class PlayerActivity : BaseActivity() {
 
         loadJob = lifecycleScope.launch {
             try {
-                val streamInfo = YouTube.stream(url)
-                info = streamInfo
-                bindDetails(streamInfo)
-                header.state.hide()
-                header.details.isVisible = true
-                startPlayback(0)
+                val info = YouTube.stream(url)
+                showDetails(info)
+                if (!PlayerController.start(url, info, audioOnly || Prefs.audioOnly)) {
+                    toast(getString(R.string.error_no_streams))
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                header.state.show(errorText(e), getString(R.string.retry)) { load(url, pushHistory = false) }
+                header.state.show(errorText(e), getString(R.string.retry)) {
+                    load(url, pushHistory = false, audioOnly = audioOnly)
+                }
             }
         }
     }
 
-    private fun bindDetails(i: StreamInfo) {
+    private fun showDetails(i: StreamInfo) {
+        header.state.hide()
+        header.details.isVisible = true
         header.title.text = i.name
         header.meta.text = listOfNotNull(
             Format.views(this, i.viewCount),
@@ -214,7 +201,7 @@ class PlayerActivity : BaseActivity() {
         header.channelRow.setOnClickListener {
             i.uploaderUrl?.let { ChannelActivity.open(this, it, i.uploaderName) }
         }
-        updateSubscribeButton()
+        updateSubscribeButton(i)
 
         val description = i.description
         val content = description?.content.orEmpty()
@@ -229,45 +216,16 @@ class PlayerActivity : BaseActivity() {
         val items = if (Prefs.showRelated) i.relatedItems.toListItems().filterIsInstance<VideoItem>() else emptyList()
         related.submit(items)
         header.relatedLabel.isVisible = items.isNotEmpty()
+        updatePlaybackUi()
     }
 
-    private fun startPlayback(positionMs: Long) {
-        val i = info ?: return
-        val playback = if (usingHlsFallback) {
-            i.hlsUrl?.takeIf { it.isNotEmpty() }?.let { Playback(null, null, it, "Auto") }
-        } else {
-            StreamPicker.pick(i, maxHeight, Prefs.lowPower, audioOnly)
-        }
-        if (playback == null) {
-            toast(getString(R.string.error_no_streams))
-            return
-        }
-
-        header.quality.text = playback.label
-        header.audioOnly.setText(if (playback.isAudioOnly) R.string.show_video else R.string.audio_only)
-        if (playback.isAudioOnly) loadArtwork(i) else b.playerView.setDefaultArtwork(null)
-
-        val source = sources.build(playback)
-        if (positionMs > 0 && !StreamPicker.isLive(i)) {
-            player.setMediaSource(source, positionMs)
-        } else {
-            player.setMediaSource(source, true)
-        }
-        player.prepare()
-        player.play()
-    }
-
-    private fun restartPlayback() = startPlayback(player.currentPosition.coerceAtLeast(0))
-
-    private fun onPlaybackError(error: PlaybackException) {
-        val i = info
-        // Progressive URLs occasionally get rejected; YouTube's HLS manifest is a good second try.
-        if (!usingHlsFallback && i != null && !i.hlsUrl.isNullOrEmpty() && !StreamPicker.isLive(i)) {
-            usingHlsFallback = true
-            restartPlayback()
-        } else {
-            toast(getString(R.string.error_playback, error.errorCodeName))
-        }
+    private fun updatePlaybackUi() {
+        val playback = PlayerController.current
+        header.quality.text = playback?.label ?: getString(R.string.quality)
+        val audio = playback?.isAudioOnly == true
+        header.audioOnly.setText(if (audio) R.string.show_video else R.string.audio_only)
+        val info = PlayerController.info
+        if (audio && info != null) loadArtwork(info) else b.playerView.setDefaultArtwork(null)
     }
 
     private fun loadArtwork(i: StreamInfo) {
@@ -280,7 +238,7 @@ class PlayerActivity : BaseActivity() {
     }
 
     private fun chooseQuality() {
-        val i = info ?: return
+        val i = PlayerController.info ?: return
         val heights = StreamPicker.availableHeights(i, Prefs.lowPower)
         if (heights.isEmpty()) {
             toast(getString(R.string.quality_fixed))
@@ -290,31 +248,24 @@ class PlayerActivity : BaseActivity() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.quality)
             .setItems(labels.toTypedArray()) { _, which ->
-                if (which == heights.size) {
-                    audioOnly = true
-                } else {
-                    audioOnly = false
-                    maxHeight = heights[which]
-                }
-                usingHlsFallback = false
-                restartPlayback()
+                PlayerController.changeQuality(heights.getOrNull(which))
             }
             .show()
     }
 
     private fun toggleSubscription() {
-        val i = info ?: return
+        val i = PlayerController.info ?: return
         val url = i.uploaderUrl ?: return
         if (Subscriptions.isSubscribed(url)) {
             Subscriptions.remove(url)
         } else {
             Subscriptions.add(Subscription(url, i.uploaderName.orEmpty(), pickImage(i.uploaderAvatars, 88)))
         }
-        updateSubscribeButton()
+        updateSubscribeButton(i)
     }
 
-    private fun updateSubscribeButton() {
-        val url = info?.uploaderUrl
+    private fun updateSubscribeButton(i: StreamInfo) {
+        val url = i.uploaderUrl
         header.subscribe.isVisible = url != null
         header.subscribe.setText(if (Subscriptions.isSubscribed(url)) R.string.unsubscribe else R.string.subscribe)
     }
@@ -361,13 +312,31 @@ class PlayerActivity : BaseActivity() {
         }
     }
 
+    // --- Background playback ---
+
+    override fun onStart() {
+        super.onStart()
+        PlayerController.setInBackground(false)
+    }
+
     override fun onStop() {
         super.onStop()
-        player.pause()
+        if (isFinishing) return
+        if (Prefs.backgroundPlay) {
+            PlayerController.setInBackground(true)
+        } else {
+            player.pause()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        player.release()
+        player.removeListener(playerListener)
+        b.playerView.player = null
+        PlayerController.onChanged = null
+        PlayerController.onError = null
+        PlayerController.onSkipped = null
+        // Back button closes the player for good; recreation (e.g. theme change) keeps playing.
+        if (isFinishing) PlayerController.stop()
     }
 }

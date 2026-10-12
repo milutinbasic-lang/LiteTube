@@ -46,8 +46,38 @@
         <SwitchPreferenceCompat
             app:defaultValue="true"
             app:iconSpaceReserved="false"
+            app:key="background_play"
+            app:summary="@string/pref_background_play_summary"
+            app:title="@string/pref_background_play" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
             app:key="show_related"
             app:title="@string/pref_show_related" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/pref_blocking">
+        <Preference
+            app:iconSpaceReserved="false"
+            app:selectable="false"
+            app:summary="@string/pref_ads_info_summary"
+            app:title="@string/pref_ads_info" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="sponsorblock"
+            app:summary="@string/pref_sponsorblock_summary"
+            app:title="@string/pref_sponsorblock" />
+        <MultiSelectListPreference
+            app:defaultValue="@array/sponsorblock_defaults"
+            app:dependency="sponsorblock"
+            app:entries="@array/sponsorblock_entries"
+            app:entryValues="@array/sponsorblock_values"
+            app:iconSpaceReserved="false"
+            app:key="sponsorblock_categories"
+            app:title="@string/pref_sponsorblock_categories" />
     </PreferenceCategory>
 
     <PreferenceCategory

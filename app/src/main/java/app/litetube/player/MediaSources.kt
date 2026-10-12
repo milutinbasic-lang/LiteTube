@@ -3,6 +3,7 @@ package app.litetube.player
 import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -37,13 +38,15 @@ class MediaSources {
     private val hlsFactory =
         ResolvingDataSource.Factory(http) { spec -> youtubeRequest(spec, addRequestNumber = false) }
 
-    fun build(playback: Playback): MediaSource {
+    /** [metadata] is shown in the notification and on the lock screen. */
+    fun build(playback: Playback, metadata: MediaMetadata): MediaSource {
+        fun item(url: String) = MediaItem.Builder().setUri(url).setMediaMetadata(metadata).build()
         playback.hlsUrl?.let {
-            return HlsMediaSource.Factory(hlsFactory).createMediaSource(MediaItem.fromUri(it))
+            return HlsMediaSource.Factory(hlsFactory).createMediaSource(item(it))
         }
         val progressive = ProgressiveMediaSource.Factory(progressiveFactory)
-        val video = playback.videoUrl?.let { progressive.createMediaSource(MediaItem.fromUri(it)) }
-        val audio = playback.audioUrl?.let { progressive.createMediaSource(MediaItem.fromUri(it)) }
+        val video = playback.videoUrl?.let { progressive.createMediaSource(item(it)) }
+        val audio = playback.audioUrl?.let { progressive.createMediaSource(item(it)) }
         return when {
             video != null && audio != null -> MergingMediaSource(video, audio)
             video != null -> video

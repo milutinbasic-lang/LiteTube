@@ -28,4 +28,29 @@
         <item>720</item>
         <item>1080</item>
     </string-array>
+    <string-array name="sponsorblock_entries">
+        <item>@string/sb_sponsor</item>
+        <item>@string/sb_selfpromo</item>
+        <item>@string/sb_interaction</item>
+        <item>@string/sb_intro</item>
+        <item>@string/sb_outro</item>
+        <item>@string/sb_preview</item>
+        <item>@string/sb_filler</item>
+        <item>@string/sb_music_offtopic</item>
+    </string-array>
+    <string-array name="sponsorblock_values" translatable="false">
+        <item>sponsor</item>
+        <item>selfpromo</item>
+        <item>interaction</item>
+        <item>intro</item>
+        <item>outro</item>
+        <item>preview</item>
+        <item>filler</item>
+        <item>music_offtopic</item>
+    </string-array>
+    <string-array name="sponsorblock_defaults" translatable="false">
+        <item>sponsor</item>
+        <item>selfpromo</item>
+        <item>interaction</item>
+    </string-array>
 </resources>
