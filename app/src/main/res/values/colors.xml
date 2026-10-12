@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand">#00796B</color>
+    <color name="brand_dark">#004D40</color>
+    <color name="on_brand">#FFFFFF</color>
+    <color name="background">#FFFFFF</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="status_bar">#004D40</color>
+    <color name="thumb_placeholder">#E0E0E0</color>
+    <color name="duration_bg">#CC000000</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>

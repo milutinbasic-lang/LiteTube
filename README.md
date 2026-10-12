@@ -1,0 +1,113 @@
+# LiteTube
+
+A lightweight, private YouTube client for Android.
+
+- **No account.** Nothing to sign in to. Subscriptions are stored only on your phone.
+- **No tracking.** No analytics, no crash reporters, no ads, no Google Play Services, no Firebase.
+  The only permission is `INTERNET`.
+- **Built for low-end phones.** Runs on Android 5.0+ with a small APK, small memory footprint and
+  hardware-friendly video formats.
+- **Dark mode.** Follow system / Light / Dark / Black (AMOLED).
+- **Free software.** GPL-3.0.
+
+## Features
+
+| Screen | What it does |
+|---|---|
+| Home | Newest videos from your subscriptions, newest first. No recommendation algorithm. Cached, so it opens instantly (even offline). Pull to refresh. |
+| Search | Videos and channels, with infinite scrolling. |
+| Player | Quality picker, **audio-only mode**, fullscreen on rotate, "Up next" list, share, subscribe. |
+| Channel | Channel info and all uploads, with subscribe/unsubscribe. |
+| Subscriptions | List, unsubscribe (long-press), **import** from NewPipe (`.json`) or Google Takeout (`subscriptions.csv`), **export** (NewPipe-compatible). |
+| Links | Opens YouTube links clicked or shared from other apps. |
+
+Long-press any video for: *Play audio only*, *Open channel*, *Share*.
+
+## How it stays light
+
+- Plain Android Views and RecyclerView. No Jetpack Compose, no WebView.
+- Small list thumbnails (picks the smallest image ≥ 320px), loaded as RGB_565 bitmaps with capped
+  memory/disk caches. Thumbnails can be switched off entirely.
+- **Low-power playback** (on by default) prefers H.264 at ≤30fps, which nearly every phone decodes in
+  hardware. Default quality cap is 360p (configurable from 144p to 1080p).
+- Smaller player buffers (15–30s instead of 50s) to save RAM and data.
+- Subscription feed uses YouTube's tiny RSS feeds, fetched 4 at a time.
+- Screens don't reload on rotation. Release builds are minified and resource-shrunk with R8.
+
+## Privacy details
+
+- YouTube data comes from [NewPipe Extractor](https://github.com/TeamNewPipe/NewPipeExtractor),
+  which reads YouTube's public web pages and APIs. No API key, no Google account.
+- No cookies are stored. The HTTP client has no cookie jar.
+- Settings, subscriptions and the cached feed live in the app's private storage. Android backup is
+  disabled.
+- Videos still stream from YouTube's servers, so YouTube can see your IP address. Use a VPN or Tor
+  (e.g. Orbot in VPN mode) if you need to hide it.
+
+## Getting the APK
+
+### Option A: GitHub Actions (no Android tools needed)
+
+1. Push this project to a GitHub repository.
+2. The **Build APK** workflow runs automatically (or start it from the *Actions* tab).
+3. Download the `litetube-apks` artifact and install `app-release.apk` on your phone.
+   You will need to allow installing from unknown sources.
+
+By default the release APK is signed with a throwaway debug key. Each CI run can generate a
+different one, so to **update** an installed copy you'd have to uninstall it first. To sign with your
+own permanent key, create one:
+
+```sh
+keytool -genkeypair -v -keystore release.jks -alias litetube -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 release.jks   # copy the output
+```
+
+…and add these repository secrets: `LITETUBE_KEYSTORE_BASE64`, `LITETUBE_KEYSTORE_PASSWORD`,
+`LITETUBE_KEY_ALIAS`, `LITETUBE_KEY_PASSWORD`. Never commit the keystore.
+
+### Option B: build locally
+
+Requires JDK 17 and the Android SDK (or Android Studio).
+
+```sh
+./gradlew assembleRelease
+# → app/build/outputs/apk/release/app-release.apk
+```
+
+## When YouTube changes something
+
+YouTube changes its internals often, and that can break playback or search in every third-party
+client. The fix is usually to bump NewPipe Extractor to its
+[latest release](https://github.com/TeamNewPipe/NewPipeExtractor/releases) in `app/build.gradle.kts`:
+
+```kotlin
+implementation("com.github.TeamNewPipe:NewPipeExtractor:vX.Y.Z")
+```
+
+If a progressive stream fails, the player automatically retries with YouTube's HLS stream when one
+is available.
+
+## Known limitations
+
+- No background playback, picture-in-picture or downloads yet. Playback pauses when you leave the app.
+- No playlists, comments or subtitles yet.
+- On Android 12+, tapping YouTube links opens LiteTube only if you enable it under
+  *App info → Open by default → Add link*. Sharing a link to LiteTube always works.
+
+## Project layout
+
+```
+app/src/main/java/app/litetube/
+├── App.kt                 init: NewPipe Extractor, image loader, theme
+├── net/                   OkHttp-based downloader for NewPipe Extractor
+├── data/                  YouTube access, subscriptions, feed cache, settings
+├── player/                stream selection + YouTube-compatible media sources
+└── ui/                    activities, list adapter, helpers
+```
+
+## License
+
+GPL-3.0-or-later. See [LICENSE](LICENSE). Uses NewPipe Extractor (GPL-3.0), AndroidX Media3,
+OkHttp and Coil (Apache-2.0).
+
+LiteTube is not affiliated with or endorsed by YouTube or Google.

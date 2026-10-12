@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/pref_appearance">
+        <ListPreference
+            app:defaultValue="system"
+            app:entries="@array/theme_entries"
+            app:entryValues="@array/theme_values"
+            app:iconSpaceReserved="false"
+            app:key="theme"
+            app:title="@string/pref_theme"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="show_thumbnails"
+            app:summary="@string/pref_show_thumbnails_summary"
+            app:title="@string/pref_show_thumbnails" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/pref_playback">
+        <ListPreference
+            app:defaultValue="360"
+            app:entries="@array/quality_entries"
+            app:entryValues="@array/quality_values"
+            app:iconSpaceReserved="false"
+            app:key="max_quality"
+            app:title="@string/pref_max_quality"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="low_power"
+            app:summary="@string/pref_low_power_summary"
+            app:title="@string/pref_low_power" />
+        <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:iconSpaceReserved="false"
+            app:key="audio_only"
+            app:summary="@string/pref_audio_only_summary"
+            app:title="@string/pref_audio_only" />
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="show_related"
+            app:title="@string/pref_show_related" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/pref_data">
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:iconSpaceReserved="false"
+            app:key="auto_refresh"
+            app:summary="@string/pref_auto_refresh_summary"
+            app:title="@string/pref_auto_refresh" />
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="clear_cache"
+            app:summary="@string/pref_clear_cache_summary"
+            app:title="@string/pref_clear_cache" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
+        app:title="@string/pref_about">
+        <Preference
+            app:iconSpaceReserved="false"
+            app:selectable="false"
+            app:summary="@string/pref_privacy_summary"
+            app:title="@string/pref_privacy" />
+        <Preference
+            app:iconSpaceReserved="false"
+            app:selectable="false"
+            app:summary="@string/pref_license_summary"
+            app:title="@string/pref_license" />
+        <Preference
+            app:iconSpaceReserved="false"
+            app:key="version"
+            app:selectable="false"
+            app:title="@string/pref_version" />
+    </PreferenceCategory>
+</PreferenceScreen>
