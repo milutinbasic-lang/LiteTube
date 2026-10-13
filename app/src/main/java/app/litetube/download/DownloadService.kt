@@ -101,7 +101,12 @@ class DownloadService : Service() {
                 val location = withContext(Dispatchers.IO) { process(job) }
                 notifyResult(job, getString(R.string.download_done, location), success = true)
             } catch (e: Throwable) {
-                notifyResult(job, getString(R.string.download_failed, e.message ?: e.javaClass.simpleName), success = false)
+                val reason = if (e is ChunkDownloader.HttpError && e.code == 403) {
+                    getString(R.string.download_refused)
+                } else {
+                    e.message ?: e.javaClass.simpleName
+                }
+                notifyResult(job, getString(R.string.download_failed, reason), success = false)
             } finally {
                 running = false
                 runNext()

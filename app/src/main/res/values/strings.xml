@@ -73,6 +73,7 @@
     <string name="download_started">Download started. See the notification for progress.</string>
     <string name="download_done">Saved to %1$s</string>
     <string name="download_failed">Download failed: %1$s</string>
+    <string name="download_refused">YouTube refused the download (HTTP 403). Reopen the video and try again; if it keeps happening, try another network.</string>
     <string name="download_unavailable">No downloadable format for this video</string>
     <string name="storage_permission_needed">Storage permission is needed to save files on this Android version</string>
     <string name="frame_saved">Frame saved to %1$s</string>
