@@ -21,7 +21,7 @@ def screen(path, title):
         ui = open(path, errors='replace').read()
     except FileNotFoundError:
         ui = ''
-    texts = [t for t in re.findall(r'text="([^"]+)"', ui) if t.strip()]
+    texts = [a or b for a, b in re.findall(r'text="([^"]*)"|text=\'([^\']*)\'', ui) if (a or b).strip()]
     note('warning', title, ' | '.join(texts)[:3500] or '(empty)')
 
 def show(path, title):
@@ -31,12 +31,6 @@ def show(path, title):
         note('warning', title, '(missing)')
 
 screen('ui.xml', 'SCREEN_VIDEO')
-try:
-    raw = open('ui.xml', errors='replace').read()
-    nodes = re.findall(r'<node [^>]*class="android.widget.(?:TextView|Button)"[^>]*>', raw)
-    note('warning', 'SCREEN_VIDEO_NODES', '\n'.join(nodes)[:7000] or '(none)')
-except FileNotFoundError:
-    pass
 show('activity.txt', 'ACTIVITY')
 show('media.txt', 'MEDIA_SESSION')
 show('media_bg.txt', 'MEDIA_SESSION_BACKGROUND')
