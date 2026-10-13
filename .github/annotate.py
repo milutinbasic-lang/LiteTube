@@ -16,11 +16,25 @@ for c in crashes[:3]:
 if not crashes:
     note('notice', 'CRASH', 'no crash')
 
-ui = open('ui.xml', errors='replace').read() if True else ''
-texts = [t for t in re.findall(r'text="([^"]+)"', ui) if t.strip()]
-note('warning', 'SCREEN', ' | '.join(texts)[:3500] or '(empty)')
-note('warning', 'ACTIVITY', open('activity.txt').read() or '(none)')
-note('warning', 'MEDIA_SESSION', open('media.txt').read() or '(none)')
+def screen(path, title):
+    try:
+        ui = open(path, errors='replace').read()
+    except FileNotFoundError:
+        ui = ''
+    texts = [t for t in re.findall(r'text="([^"]+)"', ui) if t.strip()]
+    note('warning', title, ' | '.join(texts)[:3500] or '(empty)')
+
+def show(path, title):
+    try:
+        note('warning', title, open(path).read() or '(none)')
+    except FileNotFoundError:
+        note('warning', title, '(missing)')
+
+screen('ui.xml', 'SCREEN_VIDEO')
+show('activity.txt', 'ACTIVITY')
+show('media.txt', 'MEDIA_SESSION')
+show('media_bg.txt', 'MEDIA_SESSION_BACKGROUND')
+screen('ui_channel.xml', 'SCREEN_CHANNEL')
 
 app = [l for l in log.splitlines()
        if re.search(r'LiteTube|litetube|ExoPlayer|MediaCodec.*rror|PlaybackService|Media3', l)

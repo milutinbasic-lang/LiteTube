@@ -57,6 +57,8 @@ class ChannelActivity : BaseActivity() {
         setupToolbar(b.toolbar)
         supportActionBar?.title = intent.getStringExtra(EXTRA_NAME).orEmpty()
 
+        // The layout manager must be set before inflating anything with the list as parent.
+        b.list.layoutManager = LinearLayoutManager(this)
         header = HeaderChannelBinding.inflate(layoutInflater, b.list, false)
         header.root.isVisible = false
         header.subscribe.setOnClickListener { toggleSubscription() }
@@ -65,7 +67,6 @@ class ChannelActivity : BaseActivity() {
             header.description.maxLines = if (descriptionExpanded) Int.MAX_VALUE else 3
         }
 
-        b.list.layoutManager = LinearLayoutManager(this)
         b.list.adapter = ConcatAdapter(SingleViewAdapter(header.root), adapter)
         b.list.onNearEnd { loadMore() }
         b.swipe.setOnRefreshListener { load() }

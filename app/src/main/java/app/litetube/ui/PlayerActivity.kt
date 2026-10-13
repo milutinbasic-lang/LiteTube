@@ -91,8 +91,9 @@ class PlayerActivity : BaseActivity() {
         b = ActivityPlayerBinding.inflate(layoutInflater)
         setContentView(b.root)
 
-        header = HeaderVideoBinding.inflate(layoutInflater, b.list, false)
+        // The layout manager must be set before inflating anything with the list as parent.
         b.list.layoutManager = LinearLayoutManager(this)
+        header = HeaderVideoBinding.inflate(layoutInflater, b.list, false)
         b.list.adapter = ConcatAdapter(SingleViewAdapter(header.root), related)
 
         b.playerView.player = player
