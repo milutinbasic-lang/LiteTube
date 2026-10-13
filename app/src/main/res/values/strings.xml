@@ -44,6 +44,7 @@
 
     <string name="error_network">Network error. Check your connection.</string>
     <string name="error_captcha">YouTube is temporarily limiting requests from your network. Try again later.</string>
+    <string name="error_bot_check">YouTube is blocking anonymous viewing from your current network (it asks to \"confirm you\'re not a bot\"). This often happens on VPNs, Tor or public Wi-Fi. Try another connection or wait a while.</string>
     <string name="error_unavailable">This content is not available</string>
     <string name="error_generic">Something went wrong: %1$s</string>
     <string name="error_no_streams">No playable stream found</string>

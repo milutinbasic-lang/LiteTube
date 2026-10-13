@@ -15,12 +15,14 @@ import app.litetube.data.VideoItem
 import app.litetube.databinding.ViewStateBinding
 import org.schabi.newpipe.extractor.exceptions.ContentNotAvailableException
 import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
+import org.schabi.newpipe.extractor.exceptions.SignInConfirmNotBotException
 import java.io.IOException
 
 fun Context.toast(text: CharSequence) = Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
 
 fun Context.errorText(e: Throwable): String = when (e) {
     is ReCaptchaException -> getString(R.string.error_captcha)
+    is SignInConfirmNotBotException -> getString(R.string.error_bot_check)
     is ContentNotAvailableException -> e.message?.takeIf { it.isNotBlank() } ?: getString(R.string.error_unavailable)
     is IOException -> getString(R.string.error_network)
     // Include the type: it's what makes a report from a user's phone actionable.
