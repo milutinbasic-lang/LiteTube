@@ -1,0 +1,294 @@
++ adb install -r app/build/outputs/apk/release/app-release.apk
+Performing Streamed Install
+Success
++ adb shell pm disable-user --user 0 com.google.android.apps.nexuslauncher
+Package com.google.android.apps.nexuslauncher new state: disabled-user
++ adb shell cmd uimode night no
+Night mode: no
++ adb shell settings put global sysui_demo_allowed 1
++ sleep 2
++ adb shell am broadcast -a com.android.systemui.demo -e command enter
++ adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 1200
++ adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
++ adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
++ adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
++ subscribe https://www.youtube.com/@NASA
++ open_url https://www.youtube.com/@NASA
++ adb shell am start -W -a android.intent.action.VIEW -d https://www.youtube.com/@NASA io.github.milutinbasic_lang.litetube
++ wait_for io.github.milutinbasic_lang.litetube:id/subscribe 40
+++ seq 1 40
++ for i in $(seq 1 "$2")
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ grep -q 'resource-id="io.github.milutinbasic_lang.litetube:id/subscribe"'
++ adb shell cat /sdcard/ui.xml
+cat: /sdcard/ui.xml: No such file or directory
++ dismiss
++ tap_attr 'text="Wait"'
+++ head -1
+++ dump
+++ adb shell uiautomator dump /sdcard/ui.xml
+++ grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ grep -oE 'text="Wait"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ adb shell cat /sdcard/ui.xml
++ B=
++ '[' -z '' ']'
++ return 1
++ true
++ sleep 1
++ for i in $(seq 1 "$2")
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ grep -q 'resource-id="io.github.milutinbasic_lang.litetube:id/subscribe"'
++ adb shell cat /sdcard/ui.xml
++ return 0
++ sleep 3
++ for i in 1 2 3
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ grep -q 'text="UNSUBSCRIBE"'
++ adb shell cat /sdcard/ui.xml
++ tap_id io.github.milutinbasic_lang.litetube:id/subscribe
++ tap_attr 'resource-id="io.github.milutinbasic_lang.litetube:id/subscribe"'
+++ dump
+++ adb shell uiautomator dump /sdcard/ui.xml
+++ grep -oE 'resource-id="io.github.milutinbasic_lang.litetube:id/subscribe"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ head -1
+++ grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ adb shell cat /sdcard/ui.xml
++ B='[742,328][1048,454]'
++ '[' -z '[742,328][1048,454]' ']'
++ read X1 Y1 X2 Y2
+++ sed 's/\]\[/,/; s/[][]//g'
+++ echo '[742,328][1048,454]'
+++ tr , ' '
++ adb shell input tap 895 391
++ sleep 2
++ for i in 1 2 3
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ grep -q 'text="UNSUBSCRIBE"'
++ adb shell cat /sdcard/ui.xml
++ return 0
++ subscribe https://www.youtube.com/@kurzgesagt
++ open_url https://www.youtube.com/@kurzgesagt
++ adb shell am start -W -a android.intent.action.VIEW -d https://www.youtube.com/@kurzgesagt io.github.milutinbasic_lang.litetube
++ wait_for io.github.milutinbasic_lang.litetube:id/subscribe 40
+++ seq 1 40
++ for i in $(seq 1 "$2")
++ grep -q 'resource-id="io.github.milutinbasic_lang.litetube:id/subscribe"'
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ adb shell cat /sdcard/ui.xml
++ return 0
++ sleep 3
++ for i in 1 2 3
++ dump
++ grep -q 'text="UNSUBSCRIBE"'
++ adb shell uiautomator dump /sdcard/ui.xml
++ adb shell cat /sdcard/ui.xml
++ tap_id io.github.milutinbasic_lang.litetube:id/subscribe
++ tap_attr 'resource-id="io.github.milutinbasic_lang.litetube:id/subscribe"'
+++ dump
+++ adb shell uiautomator dump /sdcard/ui.xml
+++ grep -oE 'resource-id="io.github.milutinbasic_lang.litetube:id/subscribe"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ head -1
+++ grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ adb shell cat /sdcard/ui.xml
++ B='[742,333][1048,459]'
++ '[' -z '[742,333][1048,459]' ']'
++ read X1 Y1 X2 Y2
+++ echo '[742,333][1048,459]'
+++ sed 's/\]\[/,/; s/[][]//g'
+++ tr , ' '
++ adb shell input tap 895 396
++ sleep 2
++ for i in 1 2 3
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ grep -q 'text="UNSUBSCRIBE"'
++ adb shell cat /sdcard/ui.xml
++ return 0
++ shot 3_channel
++ dismiss
++ tap_attr 'text="Wait"'
+++ dump
+++ adb shell uiautomator dump /sdcard/ui.xml
+++ grep -oE 'text="Wait"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ head -1
+++ adb shell cat /sdcard/ui.xml
++ B=
++ '[' -z '' ']'
++ return 1
++ true
++ sleep 2
++ adb exec-out screencap -p
++ echo 'shot 3_channel'
+shot 3_channel
++ home
++ adb shell am start -W -n io.github.milutinbasic_lang.litetube/app.litetube.ui.MainActivity -f 0x04000000
++ wait_for io.github.milutinbasic_lang.litetube:id/thumb 90
+++ seq 1 90
++ for i in $(seq 1 "$2")
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ grep -q 'resource-id="io.github.milutinbasic_lang.litetube:id/thumb"'
++ adb shell cat /sdcard/ui.xml
++ return 0
++ sleep 8
++ shot 1_feed
++ dismiss
++ tap_attr 'text="Wait"'
+++ dump
+++ adb shell uiautomator dump /sdcard/ui.xml
+++ grep -oE 'text="Wait"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ head -1
+++ adb shell cat /sdcard/ui.xml
++ B=
++ '[' -z '' ']'
++ return 1
++ true
++ sleep 2
++ adb exec-out screencap -p
++ echo 'shot 1_feed'
+shot 1_feed
++ tap_id io.github.milutinbasic_lang.litetube:id/action_search
++ tap_attr 'resource-id="io.github.milutinbasic_lang.litetube:id/action_search"'
+++ dump
+++ adb shell uiautomator dump /sdcard/ui.xml
+++ grep -oE 'resource-id="io.github.milutinbasic_lang.litetube:id/action_search"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ head -1
+++ adb shell cat /sdcard/ui.xml
++ B='[699,138][826,264]'
++ '[' -z '[699,138][826,264]' ']'
++ read X1 Y1 X2 Y2
+++ echo '[699,138][826,264]'
+++ sed 's/\]\[/,/; s/[][]//g'
+++ tr , ' '
++ adb shell input tap 762 201
++ wait_for io.github.milutinbasic_lang.litetube:id/query 15
+++ seq 1 15
++ for i in $(seq 1 "$2")
++ grep -q 'resource-id="io.github.milutinbasic_lang.litetube:id/query"'
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ adb shell cat /sdcard/ui.xml
++ return 0
++ adb shell input text how%sbatteries%swork
++ adb shell input keyevent KEYCODE_ENTER
++ wait_for io.github.milutinbasic_lang.litetube:id/thumb 40
+++ seq 1 40
++ for i in $(seq 1 "$2")
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ grep -q 'resource-id="io.github.milutinbasic_lang.litetube:id/thumb"'
++ adb shell cat /sdcard/ui.xml
++ return 0
++ sleep 8
++ shot 2_search
++ dismiss
++ tap_attr 'text="Wait"'
+++ dump
+++ adb shell uiautomator dump /sdcard/ui.xml
+++ grep -oE 'text="Wait"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ head -1
+++ adb shell cat /sdcard/ui.xml
++ B=
++ '[' -z '' ']'
++ return 1
++ true
++ sleep 2
++ adb exec-out screencap -p
++ echo 'shot 2_search'
+shot 2_search
++ home
++ adb shell am start -W -n io.github.milutinbasic_lang.litetube/app.litetube.ui.MainActivity -f 0x04000000
++ wait_for io.github.milutinbasic_lang.litetube:id/action_settings 15
+++ seq 1 15
++ for i in $(seq 1 "$2")
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ grep -q 'resource-id="io.github.milutinbasic_lang.litetube:id/action_settings"'
++ adb shell cat /sdcard/ui.xml
++ return 0
++ tap_id io.github.milutinbasic_lang.litetube:id/action_settings
++ tap_attr 'resource-id="io.github.milutinbasic_lang.litetube:id/action_settings"'
+++ dump
+++ adb shell uiautomator dump /sdcard/ui.xml
+++ grep -oE 'resource-id="io.github.milutinbasic_lang.litetube:id/action_settings"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ head -1
+++ adb shell cat /sdcard/ui.xml
++ B='[953,138][1080,264]'
++ '[' -z '[953,138][1080,264]' ']'
++ read X1 Y1 X2 Y2
+++ echo '[953,138][1080,264]'
+++ sed 's/\]\[/,/; s/[][]//g'
+++ tr , ' '
++ adb shell input tap 1016 201
++ sleep 4
++ shot 5_settings
++ dismiss
++ tap_attr 'text="Wait"'
+++ dump
+++ adb shell uiautomator dump /sdcard/ui.xml
+++ grep -oE 'text="Wait"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ head -1
+++ adb shell cat /sdcard/ui.xml
++ B=
++ '[' -z '' ']'
++ return 1
++ true
++ sleep 2
++ adb exec-out screencap -p
++ echo 'shot 5_settings'
+shot 5_settings
++ adb shell cmd uimode night yes
+Night mode: yes
++ sleep 3
++ home
++ adb shell am start -W -n io.github.milutinbasic_lang.litetube/app.litetube.ui.MainActivity -f 0x04000000
++ wait_for io.github.milutinbasic_lang.litetube:id/thumb 30
+++ seq 1 30
++ for i in $(seq 1 "$2")
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ grep -q 'resource-id="io.github.milutinbasic_lang.litetube:id/thumb"'
++ adb shell cat /sdcard/ui.xml
++ return 0
++ sleep 6
++ shot 4_dark
++ dismiss
++ tap_attr 'text="Wait"'
+++ dump
+++ adb shell uiautomator dump /sdcard/ui.xml
+++ grep -oE 'text="Wait"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]'
+++ head -1
+++ adb shell cat /sdcard/ui.xml
++ B=
++ '[' -z '' ']'
++ return 1
++ true
++ sleep 2
++ adb exec-out screencap -p
++ echo 'shot 4_dark'
+shot 4_dark
++ ls -la shots
+total 4836
+drwxr-xr-x  2 runner runner    4096 Oct 13 16:05 .
+drwxr-xr-x 12 runner runner    4096 Oct 13 16:02 ..
+-rw-r--r--  1 runner runner 1121859 Oct 13 16:04 1_feed.png
+-rw-r--r--  1 runner runner 1058674 Oct 13 16:04 2_search.png
+-rw-r--r--  1 runner runner 1411675 Oct 13 16:03 3_channel.png
+-rw-r--r--  1 runner runner 1098709 Oct 13 16:05 4_dark.png
+-rw-r--r--  1 runner runner  229594 Oct 13 16:04 5_settings.png
+-rw-r--r--  1 runner runner    9055 Oct 13 16:05 log.txt
++ dump
++ adb shell uiautomator dump /sdcard/ui.xml
++ adb shell cat /sdcard/ui.xml
