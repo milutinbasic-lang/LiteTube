@@ -46,7 +46,8 @@ object Format {
     fun videoMeta(context: Context, v: VideoItem, includeDuration: Boolean): String = listOfNotNull(
         if (includeDuration) duration(v.durationSec).ifEmpty { null } else null,
         v.uploader.ifEmpty { null },
-        if (v.isLive) context.getString(R.string.live) else views(context, v.views),
+        // The subscription feed reports 0 views for brand-new uploads; don't show that.
+        if (v.isLive) context.getString(R.string.live) else views(context, v.views.takeIf { it > 0 } ?: -1),
         if (v.isLive) null else age(v.uploadedMillis, v.uploadedText),
     ).joinToString(" · ")
 }

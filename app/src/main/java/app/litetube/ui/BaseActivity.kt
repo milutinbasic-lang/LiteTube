@@ -21,6 +21,13 @@ abstract class BaseActivity : AppCompatActivity() {
         // Pure black backgrounds save power on AMOLED screens.
         if (appliedTheme == "black") theme.applyStyle(R.style.ThemeOverlay_LiteTube_Black, true)
         super.onCreate(savedInstanceState)
+        // Resolve the status bar colour from the activity's (day/night aware) resources;
+        // the window's theme value isn't always updated when the system switches to dark.
+        window.statusBarColor = if (appliedTheme == "black") {
+            android.graphics.Color.BLACK
+        } else {
+            androidx.core.content.ContextCompat.getColor(this, R.color.status_bar)
+        }
     }
 
     override fun onResume() {
