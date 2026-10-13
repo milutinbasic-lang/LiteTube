@@ -1,0 +1,6 @@
+First F-Droid release.
+• Subscriptions feed, search, channels, comments
+• Background playback, audio-only mode, captions in any language (off by default, remembered)
+• SponsorBlock sponsor skipping
+• Download video/audio, save frame, on-device summary
+• Light, dark and black themes

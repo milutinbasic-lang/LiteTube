@@ -1,0 +1,34 @@
+LiteTube is a small, private YouTube client built for <b>older and budget phones</b>. It runs on Android 5.0 and up, and needs no account and no Google services.
+
+<b>Made for low-end phones</b>
+<ul>
+<li>Plain Android views and compact lists: fast on slow CPUs and with little RAM</li>
+<li>Low-power playback (on by default): H.264 at 30fps or less, which practically every phone decodes in hardware</li>
+<li>360p quality cap by default (adjustable from 144p to 1080p), small video buffers, optional no-thumbnail mode</li>
+<li>In the background only the audio is decoded, saving battery</li>
+</ul>
+
+<b>Private by design</b>
+<ul>
+<li>No account, no sign-in, no analytics, no crash reporting, no cookies kept</li>
+<li>Subscriptions and settings stay on your phone</li>
+<li>Import subscriptions from NewPipe or Google Takeout, export them any time</li>
+</ul>
+
+<b>No ads</b>
+YouTube's ads are never even downloaded. Sponsor reads, self-promotion and "like and subscribe" segments inside videos are skipped automatically with SponsorBlock, queried privately (only a 4-character hash prefix of the video ID is sent). You can turn it off.
+
+<b>Features</b>
+<ul>
+<li>Subscription feed (newest first, no recommendation algorithm), search, channels</li>
+<li>Background playback with notification and lock-screen controls; audio-only mode</li>
+<li>Captions: off by default, switch language while watching, your choice is remembered</li>
+<li>Comments with replies</li>
+<li>Download video (MP4) or audio (M4A) in the background</li>
+<li>Save the current frame as an image</li>
+<li>Summarize: a video's chapters and key moments from its captions, worked out on your phone (no AI service), each with a tap-to-jump timestamp</li>
+<li>Light, dark and pure black (AMOLED) themes</li>
+<li>Opens YouTube links shared from other apps</li>
+</ul>
+
+LiteTube uses NewPipe Extractor to read YouTube. It is not affiliated with YouTube or Google.

@@ -21,6 +21,8 @@ jobs:
 
       - name: Build release APK
         run: ./gradlew --no-daemon assembleRelease
+        env:
+          LITETUBE_SIGN_WITH_DEBUG_KEY: "1"
 
       - name: Enable KVM
         run: |

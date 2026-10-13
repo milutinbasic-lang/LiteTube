@@ -32,6 +32,8 @@ jobs:
           LITETUBE_KEYSTORE_PASSWORD: ${{ secrets.LITETUBE_KEYSTORE_PASSWORD }}
           LITETUBE_KEY_ALIAS: ${{ secrets.LITETUBE_KEY_ALIAS }}
           LITETUBE_KEY_PASSWORD: ${{ secrets.LITETUBE_KEY_PASSWORD }}
+          # Without a release key, sign with the debug key so the APK is installable.
+          LITETUBE_SIGN_WITH_DEBUG_KEY: "1"
         run: |
           set -o pipefail
           ./gradlew --no-daemon assembleDebug assembleRelease 2>&1 | tee build.log

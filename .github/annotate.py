@@ -42,6 +42,6 @@ orient = [l for l in log.splitlines() if 'LiteTube: orientation' in l]
 note('warning', 'ORIENTATION_LOG', '\n'.join(orient[-40:]) + f'\n(total {len(orient)} changes)')
 
 app = [l for l in log.splitlines()
-       if re.search(r'LiteTube|litetube|ExoPlayer|MediaCodec.*rror|PlaybackService|Media3', l)
+       if re.search(r'LiteTube|litetube|milutinbasic_lang|ExoPlayer|MediaCodec.*rror|PlaybackService|Media3', l)
        and re.search(r' [EW] ', l)]
 note('warning', 'APP_LOG', '\n'.join(app[-60:]) or '(none)')

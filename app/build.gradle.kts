@@ -6,19 +6,24 @@ plugins {
 }
 
 // Release signing is read from environment variables so no secrets live in the repo.
-// Without them the release APK is signed with the debug key (fine for personal use).
+// With neither set, the release APK is left unsigned, which is what F-Droid expects (it signs
+// builds itself). LITETUBE_SIGN_WITH_DEBUG_KEY=1 (used by our CI) signs with the debug key so
+// the APK can be installed directly.
 val releaseKeystore: String? = System.getenv("LITETUBE_KEYSTORE")
+val signWithDebugKey = System.getenv("LITETUBE_SIGN_WITH_DEBUG_KEY") == "1"
 
 android {
     namespace = "app.litetube"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "app.litetube"
+        // Derived from the developer's GitHub Pages domain (milutinbasic-lang.github.io),
+        // as F-Droid recommends using a domain you control.
+        applicationId = "io.github.milutinbasic_lang.litetube"
         minSdk = 21
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     signingConfigs {
@@ -37,7 +42,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release")
+                ?: if (signWithDebugKey) signingConfigs.getByName("debug") else null
         }
         debug {
             applicationIdSuffix = ".debug"

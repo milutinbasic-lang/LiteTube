@@ -9,6 +9,8 @@ import android.os.Environment
 import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * Writes files where the phone's gallery and music apps find them:
@@ -22,13 +24,26 @@ class SaveTarget private constructor(
     val file: File?,
     val descriptor: ParcelFileDescriptor?,
 ) {
-    /** Makes the file visible to other apps. */
-    fun publish() {
+    /**
+     * Makes the file visible to other apps and returns a content:// address that other apps
+     * can open (null if it couldn't be determined). Call from a background thread.
+     */
+    fun publish(): Uri? {
         descriptor?.close()
         if (uri != null && Build.VERSION.SDK_INT >= 29) {
             context.contentResolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+            return uri
         }
-        file?.let { MediaScannerConnection.scanFile(context, arrayOf(it.path), null, null) }
+        val f = file ?: return null
+        // Android 5-9: the media scanner registers the file and tells us its content:// address.
+        var scanned: Uri? = null
+        val done = CountDownLatch(1)
+        MediaScannerConnection.scanFile(context, arrayOf(f.path), null) { _, result ->
+            scanned = result
+            done.countDown()
+        }
+        done.await(10, TimeUnit.SECONDS)
+        return scanned
     }
 
     fun discard() {

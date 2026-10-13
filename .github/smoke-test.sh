@@ -4,10 +4,11 @@
 set -u
 APK=app/build/outputs/apk/release/app-release.apk
 VIDEO="https://www.youtube.com/watch?v=jNQXAC9IVRw"
+PKG=io.github.milutinbasic_lang.litetube
 
 adb install -r "$APK"
 adb logcat -c
-adb shell am start -W -a android.intent.action.VIEW -d "$VIDEO" app.litetube
+adb shell am start -W -a android.intent.action.VIEW -d "$VIDEO" "$PKG"
 sleep 50
 
 screen() {
@@ -42,10 +43,10 @@ adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural || tr
 sleep 3
 # Scenario A: fullscreen button, then back gesture
 # Controls may be hidden: if the fullscreen button isn't on screen, tap the video and retry.
-if ! tap_id app.litetube:id/exo_fullscreen > fs_tap.txt 2>&1; then
+if ! tap_id $PKG:id/exo_fullscreen > fs_tap.txt 2>&1; then
   adb shell input tap 160 90
   sleep 1
-  tap_id app.litetube:id/exo_fullscreen >> fs_tap.txt 2>&1 || echo "fullscreen button not found" >> fs_tap.txt
+  tap_id $PKG:id/exo_fullscreen >> fs_tap.txt 2>&1 || echo "fullscreen button not found" >> fs_tap.txt
 fi
 sample A0
 sleep 2
@@ -73,7 +74,7 @@ sleep 5
 adb shell dumpsys media_session | grep -E "state=PlaybackState" | head -3 > media_bg.txt || true
 
 # Channel page
-adb shell am start -W -a android.intent.action.VIEW -d "https://www.youtube.com/channel/UC4QobU6STFB0P71PMvOGN5A" app.litetube
+adb shell am start -W -a android.intent.action.VIEW -d "https://www.youtube.com/channel/UC4QobU6STFB0P71PMvOGN5A" "$PKG"
 sleep 25
 screen ui_channel.xml
 adb logcat -d > logcat.txt

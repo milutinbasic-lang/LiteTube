@@ -28,7 +28,9 @@ data class DownloadJob(
     val videoUrl: String?,
     val audioUrl: String?,
     val label: String,
-)
+) {
+    val mimeType get() = if (kind == SaveTarget.Kind.AUDIO) "audio/mp4" else "video/mp4"
+}
 
 /**
  * Runs downloads one at a time in the background with a progress notification,
@@ -98,15 +100,15 @@ class DownloadService : Service() {
         lastPercent = -1
         scope.launch {
             try {
-                val location = withContext(Dispatchers.IO) { process(job) }
-                notifyResult(job, getString(R.string.download_done, location), success = true)
+                val (location, uri) = withContext(Dispatchers.IO) { process(job) }
+                notifyResult(job, getString(R.string.download_done, location), opens = uri, mime = job.mimeType)
             } catch (e: Throwable) {
                 val reason = if (e is ChunkDownloader.HttpError && e.code == 403) {
                     getString(R.string.download_refused)
                 } else {
                     e.message ?: e.javaClass.simpleName
                 }
-                notifyResult(job, getString(R.string.download_failed, reason), success = false)
+                notifyResult(job, getString(R.string.download_failed, reason), opens = null, mime = null)
             } finally {
                 running = false
                 runNext()
@@ -114,7 +116,7 @@ class DownloadService : Service() {
         }
     }
 
-    private fun process(job: DownloadJob): String {
+    private fun process(job: DownloadJob): Pair<String, android.net.Uri?> {
         val work = File(cacheDir, "downloads").apply { mkdirs() }
         val parts = listOfNotNull(job.videoUrl, job.audioUrl)
         val files = parts.mapIndexed { i, _ -> File(work, "part$i") }
@@ -130,16 +132,16 @@ class DownloadService : Service() {
                     }
                 }
             }
-            val (ext, mime) = if (job.kind == SaveTarget.Kind.AUDIO) "m4a" to "audio/mp4" else "mp4" to "video/mp4"
-            val target = SaveTarget.create(this, job.kind, "${job.title}.$ext", mime)
-            try {
+            val ext = if (job.kind == SaveTarget.Kind.AUDIO) "m4a" else "mp4"
+            val target = SaveTarget.create(this, job.kind, "${job.title}.$ext", job.mimeType)
+            val uri = try {
                 Muxer.mux(files, target)
                 target.publish()
             } catch (e: Throwable) {
                 target.discard()
                 throw e
             }
-            return target.location
+            return target.location to uri
         } finally {
             files.forEach { it.delete() }
         }
@@ -160,15 +162,17 @@ class DownloadService : Service() {
         scope.launch { post(PROGRESS_ID, progressNotification(text, percent)) }
     }
 
-    private fun notifyResult(job: DownloadJob, text: String, success: Boolean) {
-        val open = if (success) {
+    /** [opens]: the saved file; tapping the notification opens it in the user's player/gallery. */
+    private fun notifyResult(job: DownloadJob, text: String, opens: android.net.Uri?, mime: String?) {
+        val id = nextResultId++
+        val open = opens?.let { uri ->
+            val view = Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, mime)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
             PendingIntent.getActivity(
-                this, 0,
-                packageManager.getLaunchIntentForPackage(packageName),
+                this, id, view,
                 PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0),
             )
-        } else {
-            null
         }
         val notification = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_download)
@@ -178,7 +182,7 @@ class DownloadService : Service() {
             .setContentIntent(open)
             .setAutoCancel(true)
             .build()
-        post(nextResultId++, notification)
+        post(id, notification)
     }
 
     private fun post(id: Int, notification: android.app.Notification) {
