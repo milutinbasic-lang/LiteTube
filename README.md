@@ -68,8 +68,8 @@ The **⋮** button in the player opens a small sheet with:
   picks the most informative passages rather than writing new sentences, and needs captions or
   chapters to work.
 
-Downloads run in the background with a progress notification, one at a time, in 2 MB chunks that
-are retried on a flaky connection.
+Downloads run in the background with a progress notification, one at a time, and resume after a
+dropped connection. Tap the "Saved to …" notification to open the file.
 
 ## Background playback
 
@@ -111,6 +111,9 @@ are retried on a flaky connection.
 
 ## Getting the APK
 
+LiteTube is prepared for F-Droid (metadata, screenshots, build recipe); see
+[fdroid/SUBMITTING.md](fdroid/SUBMITTING.md). Until it's listed:
+
 ### Option A: GitHub Actions (no Android tools needed)
 
 1. Push this project to a GitHub repository.
@@ -118,7 +121,7 @@ are retried on a flaky connection.
 3. Download the `litetube-apks` artifact and install `app-release.apk` on your phone.
    You will need to allow installing from unknown sources.
 
-By default the release APK is signed with a throwaway debug key. Each CI run can generate a
+The CI release APK is signed with a throwaway debug key. Each CI run can generate a
 different one, so to **update** an installed copy you'd have to uninstall it first. To sign with your
 own permanent key, create one:
 
@@ -136,7 +139,10 @@ Requires JDK 17 and the Android SDK (or Android Studio).
 
 ```sh
 ./gradlew assembleRelease
-# → app/build/outputs/apk/release/app-release.apk
+# → app/build/outputs/apk/release/app-release-unsigned.apk  (unsigned, as F-Droid expects)
+
+LITETUBE_SIGN_WITH_DEBUG_KEY=1 ./gradlew assembleRelease
+# → app-release.apk signed with your debug key, installable directly
 ```
 
 ## When YouTube changes something

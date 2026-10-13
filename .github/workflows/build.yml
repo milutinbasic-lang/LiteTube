@@ -48,3 +48,13 @@ jobs:
           path: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/apk/debug/*.apk
+
+      - name: Check the F-Droid style build (unsigned release)
+        run: |
+          ./gradlew --no-daemon assembleRelease --rerun-tasks -q 2>&1 | tail -5
+          ls app/build/outputs/apk/release/
+          test -f app/build/outputs/apk/release/app-release-unsigned.apk \
+            || { echo "::error title=FDROID::release build without signing env is not unsigned"; exit 1; }
+          echo "::notice title=FDROID::unsigned release build OK"
+        env:
+          LITETUBE_SIGN_WITH_DEBUG_KEY: ""

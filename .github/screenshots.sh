@@ -4,6 +4,9 @@ set -u
 PKG=io.github.milutinbasic_lang.litetube
 MAIN="$PKG/app.litetube.ui.MainActivity"
 mkdir -p shots
+# Keep a trace next to the images (CI logs aren't always accessible).
+exec > >(tee shots/log.txt) 2>&1
+set -x
 
 dump() { adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell cat /sdcard/ui.xml; }
 # Tap the centre of the first node matching attribute $1 (e.g. resource-id="x" or text="Wait").
@@ -86,3 +89,4 @@ sleep 6
 shot 4_dark
 
 ls -la shots
+dump > shots/last_ui.xml

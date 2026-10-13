@@ -48,6 +48,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan ci-screenshots
           git rm -rf --cached . > /dev/null
-          git add -f shots/*.png
+          git add -f shots/*.png shots/*.txt shots/*.xml
           git commit -m "Store screenshots"
           git push -f origin ci-screenshots
