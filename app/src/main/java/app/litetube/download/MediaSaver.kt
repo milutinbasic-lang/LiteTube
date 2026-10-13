@@ -33,7 +33,7 @@ class SaveTarget private constructor(
 
     fun discard() {
         runCatching { descriptor?.close() }
-        if (uri != null) runCatching { context.contentResolver.delete(uri, null, null) }
+        uri?.let { u -> runCatching { context.contentResolver.delete(u, null, null) } }
         file?.delete()
     }
 
