@@ -23,7 +23,8 @@ fun Context.errorText(e: Throwable): String = when (e) {
     is ReCaptchaException -> getString(R.string.error_captcha)
     is ContentNotAvailableException -> e.message?.takeIf { it.isNotBlank() } ?: getString(R.string.error_unavailable)
     is IOException -> getString(R.string.error_network)
-    else -> getString(R.string.error_generic, e.message ?: e.javaClass.simpleName)
+    // Include the type: it's what makes a report from a user's phone actionable.
+    else -> getString(R.string.error_generic, e.javaClass.name + (e.message?.let { ": $it" } ?: ""))
 }
 
 fun ViewStateBinding.loading() {

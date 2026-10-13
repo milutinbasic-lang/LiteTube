@@ -6,6 +6,7 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Bundle
 import android.text.method.LinkMovementMethod
+import android.util.Log
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.OptIn
@@ -176,7 +177,10 @@ class PlayerActivity : BaseActivity() {
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // Throwable, not Exception: a broken extractor can throw Errors, and showing
+                // them beats crashing back to the previous screen.
+                Log.e("LiteTube", "Couldn't open $url", e)
                 header.state.show(errorText(e), getString(R.string.retry)) {
                     load(url, pushHistory = false, audioOnly = audioOnly)
                 }

@@ -20,6 +20,7 @@ class App : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        CrashLog.install(this)
         Prefs.init(this)
         Prefs.applyNightMode()
         Subscriptions.init(this)

@@ -37,6 +37,9 @@
     <string name="export_done">Subscriptions exported</string>
     <string name="export_failed">Couldn\'t save the file</string>
 
+    <string name="crash_title">LiteTube crashed</string>
+    <string name="crash_message">Sorry about that. The report below stays on your phone. Tap Share if you want to send it to the developer.</string>
+
     <string name="unsupported_link">LiteTube can\'t open this link</string>
 
     <string name="error_network">Network error. Check your connection.</string>

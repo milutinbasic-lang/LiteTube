@@ -1,8 +1,11 @@
 package app.litetube.ui
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import app.litetube.CrashLog
 import app.litetube.R
 import app.litetube.data.Prefs
 
@@ -19,7 +22,26 @@ abstract class BaseActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (appliedTheme != Prefs.theme) recreate()
+        if (appliedTheme != Prefs.theme) {
+            recreate()
+            return
+        }
+        CrashLog.take()?.let(::showCrashReport)
+    }
+
+    private fun showCrashReport(report: String) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.crash_title)
+            .setMessage(getString(R.string.crash_message) + "\n\n" + report.take(1500))
+            .setPositiveButton(R.string.share) { _, _ ->
+                val send = Intent(Intent.ACTION_SEND)
+                    .setType("text/plain")
+                    .putExtra(Intent.EXTRA_SUBJECT, "LiteTube crash report")
+                    .putExtra(Intent.EXTRA_TEXT, report)
+                startActivity(Intent.createChooser(send, getString(R.string.share)))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     protected fun setupToolbar(toolbar: Toolbar, showUp: Boolean = true) {
