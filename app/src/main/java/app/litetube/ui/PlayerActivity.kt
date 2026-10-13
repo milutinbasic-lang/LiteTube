@@ -78,6 +78,7 @@ class PlayerActivity : BaseActivity() {
         private const val EXTRA_URL = "url"
         private const val EXTRA_AUDIO_ONLY = "audio_only"
         const val EXTRA_RESUME = "resume"
+        private const val CONTROLS_HIDE_MS = 3_000L
 
         fun open(context: Context, url: String, audioOnly: Boolean = false) {
             context.startActivity(
@@ -112,9 +113,14 @@ class PlayerActivity : BaseActivity() {
     }
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
+    private val hideControls = Runnable { if (player.isPlaying) b.playerView.hideController() }
+
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             b.playerView.keepScreenOn = isPlaying
+            // Get the controls out of the way once playback (re)starts; they come back on tap or pause.
+            b.playerView.removeCallbacks(hideControls)
+            if (isPlaying) b.playerView.postDelayed(hideControls, CONTROLS_HIDE_MS)
         }
     }
 
@@ -133,6 +139,8 @@ class PlayerActivity : BaseActivity() {
         b.playerView.setShowNextButton(false)
         b.playerView.setShowPreviousButton(false)
         b.playerView.setFullscreenButtonClickListener { toggleFullscreen() }
+        b.playerView.controllerShowTimeoutMs = CONTROLS_HIDE_MS.toInt()
+        b.playerView.controllerHideOnTouch = true
         player.addListener(playerListener)
 
         PlayerController.onChanged = { updatePlaybackUi() }
@@ -565,6 +573,7 @@ class PlayerActivity : BaseActivity() {
 
     private fun applyOrientation(config: Configuration) {
         val landscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE
+        Log.i("LiteTube", "orientation landscape=$landscape requested=$requestedOrientation")
         val params = b.playerBox.layoutParams
         params.height = if (landscape) {
             ViewGroup.LayoutParams.MATCH_PARENT
@@ -603,6 +612,7 @@ class PlayerActivity : BaseActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        b.playerView.removeCallbacks(hideControls)
         player.removeListener(playerListener)
         b.playerView.player = null
         PlayerController.onChanged = null

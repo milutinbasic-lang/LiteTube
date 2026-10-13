@@ -35,6 +35,11 @@ show('activity.txt', 'ACTIVITY')
 show('media.txt', 'MEDIA_SESSION')
 show('media_bg.txt', 'MEDIA_SESSION_BACKGROUND')
 screen('ui_channel.xml', 'SCREEN_CHANNEL')
+for label in ('A', 'B'):
+    show(f'orient_{label}.txt', f'ORIENTATION_{label}')
+show('fs_tap.txt', 'FULLSCREEN_TAP')
+orient = [l for l in log.splitlines() if 'LiteTube: orientation' in l]
+note('warning', 'ORIENTATION_LOG', '\n'.join(orient[-40:]) + f'\n(total {len(orient)} changes)')
 
 app = [l for l in log.splitlines()
        if re.search(r'LiteTube|litetube|ExoPlayer|MediaCodec.*rror|PlaybackService|Media3', l)

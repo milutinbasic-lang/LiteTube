@@ -18,6 +18,44 @@ screen ui.xml
 adb shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" > activity.txt || true
 adb shell dumpsys media_session | grep -E "state=PlaybackState|description=" | head -5 > media.txt || true
 
+# --- Fullscreen exit: count orientation flips (bug report: endless flicker after back swipe) ---
+sample() {  # $1 = label: record orientation every 0.5s for 8s
+  for i in $(seq 1 16); do
+    adb shell dumpsys window displays | grep -m1 -oE 'mCurrentRotation=[^ ]+|cur=[0-9]+x[0-9]+' | tr '\n' ' '
+    echo
+    sleep 0.5
+  done > "orient_$1.txt"
+}
+tap_id() {  # tap the view with resource-id $1
+  adb shell uiautomator dump /sdcard/ui2.xml >/dev/null 2>&1
+  B=$(adb shell cat /sdcard/ui2.xml | grep -oE "resource-id=\"$1\"[^>]*bounds=\"\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]" | grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]' | head -1)
+  if [ -z "$B" ]; then echo "no $1" ; return 1; fi
+  read X1 Y1 X2 Y2 <<< "$(echo "$B" | tr -d '[]' | tr ',' ' ')"
+  adb shell input tap $(( (X1 + X2) / 2 )) $(( (Y1 + Y2) / 2 ))
+}
+back_swipe() {  # system back gesture: swipe in from the left edge
+  W=$(adb shell wm size | grep -oE '[0-9]+x[0-9]+' | tail -1)
+  H=${W#*x}; WW=${W%x*}
+  adb shell input swipe 2 $((H / 2)) $((WW / 3)) $((H / 2)) 250
+}
+adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural || true
+sleep 3
+# Scenario A: fullscreen button, then back gesture
+adb shell input tap 160 100   # show controls
+sleep 1
+tap_id app.litetube:id/exo_fullscreen > fs_tap.txt 2>&1
+sleep 4
+back_swipe
+sample A
+# Scenario B: rotate the device to landscape, then back gesture
+adb shell settings put system accelerometer_rotation 0
+adb shell settings put system user_rotation 1
+sleep 4
+back_swipe
+sample B
+adb shell settings put system user_rotation 0
+sleep 2
+
 # Background playback: go Home, check the session is still playing.
 adb shell input keyevent KEYCODE_HOME
 sleep 5
