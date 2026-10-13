@@ -1,0 +1,33 @@
+# Build metadata for the F-Droid main repository.
+# Submit this file as metadata/io.github.milutinbasic_lang.litetube.yml in a merge request to
+# https://gitlab.com/fdroid/fdroiddata (see fdroid/SUBMITTING.md).
+AntiFeatures:
+  NonFreeNet:
+    en-US: Depends on YouTube for videos. Optionally uses SponsorBlock (free, open data) to skip sponsored segments.
+Categories:
+  - Online Media Player
+  - Multimedia
+  - Internet
+License: GPL-3.0-or-later
+AuthorName: Milutin Basic
+SourceCode: https://github.com/milutinbasic-lang/LiteTube
+IssueTracker: https://github.com/milutinbasic-lang/LiteTube/issues
+Changelog: https://github.com/milutinbasic-lang/LiteTube/tree/main/fastlane/metadata/android/en-US/changelogs
+
+AutoName: LiteTube
+
+RepoType: git
+Repo: https://github.com/milutinbasic-lang/LiteTube.git
+
+Builds:
+  - versionName: 0.2.0
+    versionCode: 2
+    commit: v0.2.0
+    subdir: app
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 0.2.0
+CurrentVersionCode: 2
