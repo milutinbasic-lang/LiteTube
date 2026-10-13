@@ -18,6 +18,11 @@ Everything F-Droid needs is already in this repository:
 
 ## Steps (about 15 minutes)
 
+0. **Create the release tag** (F-Droid builds from it). On GitHub open the repository →
+   **Releases** → **Draft a new release** → **Choose a tag** → type `v0.2.0` →
+   *Create new tag on publish*, target `main` → title `LiteTube 0.2.0` → **Publish release**.
+   (Optional cleanup: **Branches** → delete `ci-screenshots`, a leftover from capturing the
+   screenshots.)
 1. **Create a GitLab account** at https://gitlab.com (F-Droid's packaging lives there).
 2. **Fork** https://gitlab.com/fdroid/fdroiddata (button "Fork" at the top right).
 3. In your fork, **create a branch** named `io.github.milutinbasic_lang.litetube`.
