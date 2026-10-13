@@ -31,7 +31,7 @@ tap_id() {  # tap the view with resource-id $1
   adb shell uiautomator dump /sdcard/ui2.xml >/dev/null 2>&1
   B=$(adb shell cat /sdcard/ui2.xml | grep -oE "resource-id=\"$1\"[^>]*bounds=\"\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]" | grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]' | head -1)
   if [ -z "$B" ]; then echo "no $1" ; return 1; fi
-  read X1 Y1 X2 Y2 <<< "$(echo "$B" | tr -d '[]' | tr ',' ' ')"
+  read X1 Y1 X2 Y2 <<< "$(echo "$B" | sed 's/\]\[/,/; s/[][]//g' | tr ',' ' ')"
   adb shell input tap $(( (X1 + X2) / 2 )) $(( (Y1 + Y2) / 2 ))
 }
 back_swipe() {  # system back gesture: swipe in from the left edge

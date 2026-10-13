@@ -13,7 +13,7 @@ dump() { adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell ca
 tap_attr() {
   B=$(dump | grep -oE "$1[^>]*bounds=\"\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]" | grep -oE '\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]' | head -1)
   [ -z "$B" ] && return 1
-  read X1 Y1 X2 Y2 <<< "$(echo "$B" | tr -d '[]' | tr ',' ' ')"
+  read X1 Y1 X2 Y2 <<< "$(echo "$B" | sed 's/\]\[/,/; s/[][]//g' | tr ',' ' ')"
   adb shell input tap $(( (X1 + X2) / 2 )) $(( (Y1 + Y2) / 2 ))
 }
 tap_id() { tap_attr "resource-id=\"$1\""; }
@@ -48,6 +48,7 @@ adb shell pm disable-user --user 0 com.google.android.apps.nexuslauncher || true
 adb shell cmd uimode night no
 # Clean status bar (demo mode): fixed clock, full battery and signal, no notifications.
 adb shell settings put global sysui_demo_allowed 1
+sleep 2
 adb shell am broadcast -a com.android.systemui.demo -e command enter >/dev/null
 adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 1200 >/dev/null
 adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false >/dev/null
