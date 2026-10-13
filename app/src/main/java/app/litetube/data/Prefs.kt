@@ -16,6 +16,7 @@ object Prefs {
     const val BACKGROUND_PLAY = "background_play"
     const val SPONSORBLOCK = "sponsorblock"
     const val SPONSORBLOCK_CATEGORIES = "sponsorblock_categories"
+    const val CAPTION_LANGUAGE = "caption_language"
 
     private val DEFAULT_SPONSOR_CATEGORIES = setOf("sponsor", "selfpromo", "interaction")
 
@@ -37,6 +38,11 @@ object Prefs {
     val sponsorBlock: Boolean get() = sp.getBoolean(SPONSORBLOCK, true)
     val sponsorBlockCategories: Set<String>
         get() = sp.getStringSet(SPONSORBLOCK_CATEGORIES, null) ?: DEFAULT_SPONSOR_CATEGORIES
+
+    /** Last caption language the user picked; null = captions off (the default). */
+    var captionLanguage: String?
+        get() = sp.getString(CAPTION_LANGUAGE, null)?.ifEmpty { null }
+        set(value) = sp.edit().putString(CAPTION_LANGUAGE, value.orEmpty()).apply()
 
     fun applyNightMode() {
         AppCompatDelegate.setDefaultNightMode(

@@ -10,9 +10,12 @@ import org.schabi.newpipe.extractor.channel.ChannelInfo
 import org.schabi.newpipe.extractor.channel.ChannelInfoItem
 import org.schabi.newpipe.extractor.channel.tabs.ChannelTabInfo
 import org.schabi.newpipe.extractor.channel.tabs.ChannelTabs
+import org.schabi.newpipe.extractor.comments.CommentsInfo
+import org.schabi.newpipe.extractor.comments.CommentsInfoItem
 import org.schabi.newpipe.extractor.linkhandler.ListLinkHandler
 import org.schabi.newpipe.extractor.linkhandler.SearchQueryHandler
 import org.schabi.newpipe.extractor.search.SearchInfo
+import org.schabi.newpipe.extractor.stream.Description
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.stream.StreamType
@@ -90,6 +93,25 @@ object YouTube {
         }
     }
 
+    class CommentsResult(val comments: List<Comment>, val next: Page?, val disabled: Boolean, val count: Int)
+
+    suspend fun comments(videoUrl: String): CommentsResult = io {
+        val info = CommentsInfo.getInfo(service, videoUrl)
+            ?: return@io CommentsResult(emptyList(), null, true, -1)
+        CommentsResult(
+            info.relatedItems.map { it.toComment() },
+            info.nextPage.validOrNull(),
+            info.isCommentsDisabled,
+            info.commentsCount,
+        )
+    }
+
+    /** Next page of comments, or of a comment's replies (pass its [Comment.repliesPage]). */
+    suspend fun moreComments(videoUrl: String, page: Page, asReplies: Boolean = false): Pair<List<Comment>, Page?> = io {
+        val p = CommentsInfo.getMoreItems(service, videoUrl, page)
+        p.items.map { it.toComment(asReplies) } to p.nextPage.validOrNull()
+    }
+
     private suspend fun <T> io(block: () -> T): T = withContext(Dispatchers.IO) { block() }
 
     private fun Page?.validOrNull(): Page? = if (Page.isValid(this)) this else null
@@ -114,6 +136,19 @@ fun StreamInfoItem.toVideoItem() = VideoItem(
     uploadedText = textualUploadDate,
     uploadedMillis = runCatching { uploadDate?.instant?.toEpochMilli() }.getOrNull() ?: 0L,
     isLive = streamType == StreamType.LIVE_STREAM || streamType == StreamType.AUDIO_LIVE_STREAM,
+)
+
+fun CommentsInfoItem.toComment(isReply: Boolean = false) = Comment(
+    author = uploaderName.orEmpty(),
+    textHtml = commentText?.takeIf { it.type == Description.HTML }?.content,
+    textPlain = commentText?.takeIf { it.type != Description.HTML }?.content,
+    likes = likeCount,
+    date = textualUploadDate,
+    replyCount = replyCount,
+    repliesPage = replies?.takeIf { Page.isValid(it) },
+    pinned = isPinned,
+    hearted = isHeartedByUploader,
+    isReply = isReply,
 )
 
 fun ChannelInfoItem.toChannelItem() = ChannelItem(

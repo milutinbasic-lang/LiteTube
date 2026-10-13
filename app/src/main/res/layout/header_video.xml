@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
@@ -35,6 +36,7 @@
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="13sp" />
 
+        <!-- Compact action row: icon buttons, with rarely used tools behind "More". -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -47,25 +49,40 @@
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/home"
+                    style="@style/Widget.LiteTube.IconButton"
+                    android:contentDescription="@string/home"
+                    app:icon="@drawable/ic_home" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/quality"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/quality" />
+                    style="@style/Widget.LiteTube.ActionButton"
+                    android:text="@string/quality"
+                    app:icon="@drawable/ic_hd" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/captions"
+                    style="@style/Widget.LiteTube.ActionButton"
+                    android:text="@string/captions_off"
+                    app:icon="@drawable/ic_cc" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/audioOnly"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/audio_only" />
+                    style="@style/Widget.LiteTube.ActionButton"
+                    android:text="@string/audio_only"
+                    app:icon="@drawable/ic_music" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/share"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/share" />
+                    android:id="@+id/comments"
+                    style="@style/Widget.LiteTube.ActionButton"
+                    android:text="@string/comments"
+                    app:icon="@drawable/ic_comment" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/more"
+                    style="@style/Widget.LiteTube.IconButton"
+                    android:contentDescription="@string/more_tools"
+                    app:icon="@drawable/ic_more" />
             </LinearLayout>
         </HorizontalScrollView>
 

@@ -33,7 +33,11 @@ object PlayerController {
     private val scope = MainScope()
     private val sources by lazy { MediaSources() }
 
-    val player: ExoPlayer by lazy { buildPlayer() }
+    private val playerLazy = lazy { buildPlayer() }
+    val player: ExoPlayer by playerLazy
+
+    /** True while a video is loaded. Doesn't create the player just to ask. */
+    val isActive: Boolean get() = playerLazy.isInitialized() && currentUrl != null
 
     var currentUrl: String? = null
         private set
@@ -45,6 +49,13 @@ object PlayerController {
         private set
     private var maxHeight = 360
     private var usingHlsFallback = false
+
+    /** Caption language currently shown, or null when captions are off. */
+    var captionLanguage: String? = null
+        private set
+
+    /** Set when the user taps Home, so closing the player screen doesn't stop playback. */
+    var closingToHome = false
 
     private var segments: List<SponsorBlock.Segment> = emptyList()
     private var segmentJob: Job? = null
@@ -98,6 +109,7 @@ object PlayerController {
         this.audioOnly = audioOnly
         maxHeight = Prefs.maxQuality
         usingHlsFallback = false
+        captionLanguage = Prefs.captionLanguage
         loadSegments(streamInfo)
         if (!play(0)) return false
         // Started while the app is visible; Media3 then promotes it to a foreground service while playing.
@@ -114,6 +126,13 @@ object PlayerController {
             maxHeight = height
         }
         usingHlsFallback = false
+        play(player.currentPosition.coerceAtLeast(0))
+    }
+
+    /** Switch captions while playing (null = off) and remember the choice for next videos. */
+    fun setCaptions(language: String?) {
+        captionLanguage = language
+        Prefs.captionLanguage = language
         play(player.currentPosition.coerceAtLeast(0))
     }
 
@@ -161,7 +180,14 @@ object PlayerController {
             .setArtist(i.uploaderName)
             .setArtworkUri(pickImage(i.thumbnails, 480)?.let(Uri::parse))
             .build()
-        val source = sources.build(playback, metadata)
+        // Captions are off unless the user picked a language. Disabling the text track type also
+        // hides captions that some YouTube streams carry on their own.
+        val caption = Captions.find(i, captionLanguage)
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, caption == null)
+            .setPreferredTextLanguage(caption?.language)
+            .build()
+        val source = sources.build(playback, metadata, caption)
         if (positionMs > 0 && !StreamPicker.isLive(i)) {
             player.setMediaSource(source, positionMs)
         } else {

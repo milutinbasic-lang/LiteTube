@@ -1,7 +1,20 @@
 package app.litetube.ui
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
+import android.view.SurfaceView
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Bundle
@@ -10,6 +23,7 @@ import android.util.Log
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.OptIn
+import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -30,8 +44,15 @@ import app.litetube.data.pickImage
 import app.litetube.data.toListItems
 import app.litetube.databinding.ActivityPlayerBinding
 import app.litetube.databinding.HeaderVideoBinding
+import app.litetube.download.DownloadJob
+import app.litetube.download.DownloadOptions
+import app.litetube.download.DownloadService
+import app.litetube.download.SaveTarget
+import app.litetube.player.Captions
 import app.litetube.player.PlayerController
 import app.litetube.player.StreamPicker
+import app.litetube.player.Summarizer
+import app.litetube.player.YoutubeRequests
 import coil.imageLoader
 import coil.load
 import coil.request.ImageRequest
@@ -39,7 +60,10 @@ import coil.transform.CircleCropTransformation
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.FileOutputStream
 import org.schabi.newpipe.extractor.stream.Description
 import org.schabi.newpipe.extractor.stream.StreamInfo
 
@@ -80,6 +104,14 @@ class PlayerActivity : BaseActivity() {
     private var loadJob: Job? = null
     private var descriptionExpanded = false
 
+    // Android 5–9 need the storage permission to save into Movies/Music/Pictures.
+    private var afterStoragePermission: (() -> Unit)? = null
+    private val storagePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) afterStoragePermission?.invoke() else toast(getString(R.string.storage_permission_needed))
+        afterStoragePermission = null
+    }
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             b.playerView.keepScreenOn = isPlaying
@@ -88,6 +120,7 @@ class PlayerActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PlayerController.closingToHome = false
         b = ActivityPlayerBinding.inflate(layoutInflater)
         setContentView(b.root)
 
@@ -106,9 +139,12 @@ class PlayerActivity : BaseActivity() {
         PlayerController.onError = { toast(getString(R.string.error_playback, it.errorCodeName)) }
         PlayerController.onSkipped = { toast(getString(R.string.sponsor_skipped)) }
 
+        header.home.setOnClickListener { goHome() }
         header.quality.setOnClickListener { chooseQuality() }
+        header.captions.setOnClickListener { chooseCaptions() }
         header.audioOnly.setOnClickListener { PlayerController.toggleAudioOnly() }
-        header.share.setOnClickListener { currentUrl?.let { share(this, PlayerController.info?.name, it) } }
+        header.comments.setOnClickListener { currentUrl?.let { CommentsSheet(this, it).show() } }
+        header.more.setOnClickListener { showTools() }
         header.subscribe.setOnClickListener { toggleSubscription() }
         header.description.movementMethod = LinkMovementMethod.getInstance()
         header.description.setOnClickListener {
@@ -229,6 +265,7 @@ class PlayerActivity : BaseActivity() {
         header.quality.text = playback?.label ?: getString(R.string.quality)
         val audio = playback?.isAudioOnly == true
         header.audioOnly.setText(if (audio) R.string.show_video else R.string.audio_only)
+        header.captions.text = PlayerController.captionLanguage?.uppercase() ?: getString(R.string.captions_off)
         val info = PlayerController.info
         if (audio && info != null) loadArtwork(info) else b.playerView.setDefaultArtwork(null)
     }
@@ -256,6 +293,236 @@ class PlayerActivity : BaseActivity() {
                 PlayerController.changeQuality(heights.getOrNull(which))
             }
             .show()
+    }
+
+    // --- Captions ---
+
+    private fun chooseCaptions() {
+        val info = PlayerController.info ?: return
+        val options = Captions.options(info)
+        if (options.isEmpty()) {
+            toast(getString(R.string.no_captions))
+            return
+        }
+        val labels = listOf(getString(R.string.captions_off_long)) + options.map { it.label }
+        val checked = options.indexOfFirst { it.language == PlayerController.captionLanguage } + 1
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.captions)
+            .setSingleChoiceItems(labels.toTypedArray<CharSequence>(), checked) { dialog, which ->
+                dialog.dismiss()
+                PlayerController.setCaptions(options.getOrNull(which - 1)?.language)
+            }
+            .show()
+    }
+
+    // --- Tools ("More" sheet) ---
+
+    private fun showTools() {
+        val info = PlayerController.info ?: return
+        val live = StreamPicker.isLive(info)
+        val tools = ArrayList<ToolsSheet.Tool>()
+        if (!live) {
+            tools += ToolsSheet.Tool(R.drawable.ic_download, R.string.tool_download_video, null) { downloadVideo(info) }
+            tools += ToolsSheet.Tool(R.drawable.ic_music, R.string.tool_download_audio, R.string.tool_download_audio_hint) { downloadAudio(info) }
+        }
+        tools += ToolsSheet.Tool(R.drawable.ic_image, R.string.tool_save_frame, null) { saveFrame(info) }
+        if (!live) {
+            tools += ToolsSheet.Tool(R.drawable.ic_summary, R.string.tool_summarize, R.string.tool_summarize_hint) { summarize(info) }
+        }
+        tools += ToolsSheet.Tool(R.drawable.ic_share, R.string.share, null) {
+            currentUrl?.let { share(this, info.name, it) }
+        }
+        ToolsSheet(this).show(tools)
+    }
+
+    private fun withStorage(action: () -> Unit) {
+        val granted = Build.VERSION.SDK_INT >= 29 ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            action()
+        } else {
+            afterStoragePermission = action
+            storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+    }
+
+    private fun startDownload(job: DownloadJob) {
+        withStorage {
+            // Optional: lets the progress notification show on Android 13+.
+            if (Build.VERSION.SDK_INT >= 33 &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            DownloadService.enqueue(this, job)
+            toast(getString(R.string.download_started))
+        }
+    }
+
+    private fun downloadVideo(info: StreamInfo) {
+        val options = DownloadOptions.video(info)
+        if (options.isEmpty()) {
+            toast(getString(R.string.download_unavailable))
+            return
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.tool_download_video)
+            .setItems(options.map { it.label }.toTypedArray<CharSequence>()) { _, which ->
+                val o = options[which]
+                startDownload(DownloadJob(info.name, SaveTarget.Kind.VIDEO, o.videoUrl, o.audioUrl, o.label))
+            }
+            .show()
+    }
+
+    private fun downloadAudio(info: StreamInfo) {
+        val audio = DownloadOptions.audio(info)
+        if (audio == null) {
+            toast(getString(R.string.download_unavailable))
+            return
+        }
+        startDownload(DownloadJob(info.name, SaveTarget.Kind.AUDIO, null, audio.content, "M4A"))
+    }
+
+    private fun saveFrame(info: StreamInfo) {
+        if (PlayerController.current?.isAudioOnly == true) {
+            toast(getString(R.string.frame_no_video))
+            return
+        }
+        withStorage {
+            val positionMs = player.currentPosition
+            captureFrame { bitmap ->
+                if (bitmap == null) {
+                    toast(getString(R.string.frame_failed))
+                    return@captureFrame
+                }
+                lifecycleScope.launch {
+                    try {
+                        val name = "${info.name} ${Format.duration(positionMs / 1000).replace(':', '.')}.jpg"
+                        val location = withContext(Dispatchers.IO) {
+                            val target = SaveTarget.create(this@PlayerActivity, SaveTarget.Kind.IMAGE, name, "image/jpeg")
+                            try {
+                                val out = target.file?.let { FileOutputStream(it) }
+                                    ?: FileOutputStream(target.descriptor!!.fileDescriptor)
+                                out.use { bitmap.compress(Bitmap.CompressFormat.JPEG, 92, it) }
+                                target.publish()
+                            } catch (e: Throwable) {
+                                target.discard()
+                                throw e
+                            }
+                            target.location
+                        }
+                        toast(getString(R.string.frame_saved, location))
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        toast(getString(R.string.frame_failed))
+                    } finally {
+                        bitmap.recycle()
+                    }
+                }
+            }
+        }
+    }
+
+    /** Copies the frame on screen at full video resolution (Android 7+), else asks the stream. */
+    private fun captureFrame(callback: (Bitmap?) -> Unit) {
+        val size = player.videoSize
+        val surface = b.playerView.videoSurfaceView
+        if (Build.VERSION.SDK_INT >= 24 && surface is SurfaceView && size.width > 0 && size.height > 0) {
+            val bitmap = Bitmap.createBitmap(size.width, size.height, Bitmap.Config.ARGB_8888)
+            try {
+                PixelCopy.request(surface, bitmap, { result ->
+                    callback(if (result == PixelCopy.SUCCESS) bitmap else null.also { bitmap.recycle() })
+                }, Handler(Looper.getMainLooper()))
+            } catch (e: IllegalArgumentException) {
+                bitmap.recycle()
+                callback(null)
+            }
+            return
+        }
+        val url = PlayerController.current?.videoUrl ?: return callback(null)
+        val positionUs = player.currentPosition * 1000
+        lifecycleScope.launch {
+            val bitmap = withContext(Dispatchers.IO) {
+                val retriever = MediaMetadataRetriever()
+                try {
+                    retriever.setDataSource(url, YoutubeRequests.headersFor(url))
+                    retriever.getFrameAtTime(positionUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                } catch (e: Exception) {
+                    null
+                } finally {
+                    runCatching { retriever.release() }
+                }
+            }
+            callback(bitmap)
+        }
+    }
+
+    private fun summarize(info: StreamInfo) {
+        toast(getString(R.string.summarizing))
+        lifecycleScope.launch {
+            try {
+                val summary = Summarizer.summarize(info, PlayerController.captionLanguage)
+                if (summary.chapters.isEmpty() && summary.keyMoments.isEmpty()) {
+                    toast(getString(R.string.summary_unavailable))
+                } else {
+                    showSummary(summary)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                toast(errorText(e))
+            }
+        }
+    }
+
+    private fun showSummary(summary: Summarizer.Summary) {
+        val density = resources.displayMetrics.density
+        val padding = (20 * density).toInt()
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(padding, (8 * density).toInt(), padding, padding)
+        }
+        val ripple = android.util.TypedValue().also {
+            theme.resolveAttribute(android.R.attr.selectableItemBackground, it, true)
+        }.resourceId
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.tool_summarize)
+            .setView(ScrollView(this).apply { addView(content) })
+            .setPositiveButton(android.R.string.ok, null)
+            .create()
+
+        fun section(title: Int) = content.addView(TextView(this).apply {
+            setText(title)
+            textSize = 13f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setPadding(0, (12 * density).toInt(), 0, (4 * density).toInt())
+        })
+        fun moment(m: Summarizer.Moment) = content.addView(TextView(this).apply {
+            text = "${Format.duration(m.positionMs / 1000).ifEmpty { "0:00" }}   ${m.text}"
+            textSize = 14f
+            setPadding(0, (6 * density).toInt(), 0, (6 * density).toInt())
+            setBackgroundResource(ripple)
+            setOnClickListener {
+                player.seekTo(m.positionMs)
+                dialog.dismiss()
+            }
+        })
+
+        if (summary.chapters.isNotEmpty()) {
+            section(R.string.summary_chapters)
+            summary.chapters.forEach(::moment)
+        }
+        if (summary.keyMoments.isNotEmpty()) {
+            section(R.string.summary_key_moments)
+            summary.keyMoments.forEach(::moment)
+        }
+        content.addView(TextView(this).apply {
+            text = getString(R.string.summary_note, summary.captionLanguage ?: "-")
+            textSize = 12f
+            setPadding(0, (12 * density).toInt(), 0, 0)
+        })
+        dialog.show()
     }
 
     private fun toggleSubscription() {
@@ -326,7 +593,7 @@ class PlayerActivity : BaseActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (isFinishing) return
+        if (isFinishing && !PlayerController.closingToHome) return
         if (Prefs.backgroundPlay) {
             PlayerController.setInBackground(true)
         } else {
@@ -341,7 +608,8 @@ class PlayerActivity : BaseActivity() {
         PlayerController.onChanged = null
         PlayerController.onError = null
         PlayerController.onSkipped = null
-        // Back button closes the player for good; recreation (e.g. theme change) keeps playing.
-        if (isFinishing) PlayerController.stop()
+        // Back button closes the player for good; Home and recreation (e.g. theme change) keep playing.
+        if (isFinishing && !PlayerController.closingToHome) PlayerController.stop()
+        PlayerController.closingToHome = false
     }
 }

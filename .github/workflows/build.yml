@@ -32,7 +32,13 @@ jobs:
           LITETUBE_KEYSTORE_PASSWORD: ${{ secrets.LITETUBE_KEYSTORE_PASSWORD }}
           LITETUBE_KEY_ALIAS: ${{ secrets.LITETUBE_KEY_ALIAS }}
           LITETUBE_KEY_PASSWORD: ${{ secrets.LITETUBE_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon assembleDebug assembleRelease
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon assembleDebug assembleRelease 2>&1 | tee build.log
+
+      - name: Report build errors
+        if: failure()
+        run: python3 .github/report-build-errors.py
 
       - uses: actions/upload-artifact@v4
         with:

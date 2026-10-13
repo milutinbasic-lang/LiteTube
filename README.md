@@ -19,7 +19,9 @@ A lightweight, private YouTube client for Android.
 |---|---|
 | Home | Newest videos from your subscriptions, newest first. No recommendation algorithm. Cached, so it opens instantly (even offline). Pull to refresh. |
 | Search | Videos and channels, with infinite scrolling. |
-| Player | Quality picker, **audio-only mode**, **background playback**, sponsor skipping, fullscreen on rotate, "Up next" list, share, subscribe. |
+| Player | Quality picker, **captions** (off by default, any language, remembered), **audio-only mode**, **background playback**, sponsor skipping, **comments**, fullscreen on rotate, "Up next" list, subscribe. |
+| Tools (⋮) | **Download video** (MP4), **download audio** (M4A), **save current frame** as an image, **summarize** (chapters + key moments), share. |
+| Navigation | Home button on every screen. While something plays, Home shows a mini player (play/pause, close, tap to return). |
 | Channel | Channel info and all uploads, with subscribe/unsubscribe. |
 | Subscriptions | List, unsubscribe (long-press), **import** from NewPipe (`.json`) or Google Takeout (`subscriptions.csv`), **export** (NewPipe-compatible). |
 | Links | Opens YouTube links clicked or shared from other apps. |
@@ -43,6 +45,31 @@ SponsorBlock lookups are private: only the first 4 characters of a SHA-256 hash 
 are sent. The server replies with segments for every video sharing that prefix, and the app picks
 the right one locally. Skips are triggered by the player at exact positions, without a
 polling loop, so it costs essentially no CPU. Turn it off in Settings to make no requests at all.
+
+## Captions
+
+Off by default. Tap **CC** in the player to pick a language while the video plays. LiteTube
+remembers your choice (e.g. Serbian) and turns it on automatically for the next video that has it.
+Only the chosen language is downloaded.
+
+## Downloads and tools
+
+The **⋮** button in the player opens a small sheet with:
+
+- **Download video**: pick a resolution. YouTube serves HD video and audio separately, so LiteTube
+  downloads both and joins them into one MP4 with Android's built-in muxer: no re-encoding, no
+  quality loss, no extra libraries. Saved to **Movies/LiteTube**, so it shows up in your gallery.
+- **Download audio**: saved as **M4A (AAC)** to **Music/LiteTube**. It isn't MP3 because Android has
+  no MP3 encoder: converting would need a bundled encoder, take CPU time on slow phones, and lose
+  quality. M4A plays in every music app and is smaller than MP3 at the same quality.
+- **Save current frame**: the exact frame on screen, at full video resolution, to **Pictures/LiteTube**.
+- **Summarize**: the video's chapters plus 3–8 "key moments" picked from its captions, each with a
+  timestamp you can tap to jump there. Worked out on your phone: no AI service, nothing uploaded. It
+  picks the most informative passages rather than writing new sentences, and needs captions or
+  chapters to work.
+
+Downloads run in the background with a progress notification, one at a time, in 2 MB chunks that
+are retried on a flaky connection.
 
 ## Background playback
 
@@ -75,9 +102,11 @@ polling loop, so it costs essentially no CPU. Turn it off in Settings to make no
   disabled.
 - Videos still stream from YouTube's servers, so YouTube can see your IP address. Use a VPN or Tor
   (e.g. Orbot in VPN mode) if you need to hide it.
-- Permissions: `INTERNET`, plus `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` and
-  `WAKE_LOCK` for background playback. These are granted automatically and don't give access to
-  any of your data. No location, contacts, storage, camera or microphone.
+- Permissions: `INTERNET`; `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`,
+  `FOREGROUND_SERVICE_DATA_SYNC` and `WAKE_LOCK` for background playback and downloads (granted
+  automatically, no access to your data); `POST_NOTIFICATIONS` (asked once, optional, only to show
+  download progress on Android 13+); `WRITE_EXTERNAL_STORAGE` **only on Android 5–9** and only when
+  you first save a file. No location, contacts, camera or microphone.
 - The only servers contacted are YouTube's and, if enabled, SponsorBlock's (`sponsor.ajay.app`).
 
 ## Getting the APK
@@ -125,7 +154,7 @@ is available.
 
 ## Known limitations
 
-- No picture-in-picture, play queue or downloads yet.
+- No picture-in-picture or play queue yet.
 - No playlists, comments or subtitles yet.
 - On Android 12+, tapping YouTube links opens LiteTube only if you enable it under
   *App info → Open by default → Add link*. Sharing a link to LiteTube always works.
@@ -137,8 +166,9 @@ app/src/main/java/app/litetube/
 ├── App.kt                 init: NewPipe Extractor, image loader, theme
 ├── net/                   OkHttp-based downloader for NewPipe Extractor
 ├── data/                  YouTube access, subscriptions, feed cache, settings
-├── player/                shared player, background service, SponsorBlock,
-│                          stream selection, YouTube-compatible media sources
+├── player/                shared player, background service, SponsorBlock, captions,
+│                          summarizer, stream selection, YouTube-compatible media sources
+├── download/              background downloads, chunked fetching, MP4 muxing, saving
 └── ui/                    activities, list adapter, helpers
 ```
 

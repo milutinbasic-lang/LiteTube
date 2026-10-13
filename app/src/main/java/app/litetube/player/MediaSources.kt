@@ -2,6 +2,8 @@ package app.litetube.player
 
 import android.net.Uri
 import androidx.annotation.OptIn
+import androidx.media3.common.C
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
@@ -12,14 +14,17 @@ import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.extractor.Extractor
+import androidx.media3.extractor.ExtractorsFactory
+import androidx.media3.extractor.text.DefaultSubtitleParserFactory
+import androidx.media3.extractor.text.SubtitleExtractor
 import app.litetube.net.Http
-import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import java.util.concurrent.atomic.AtomicLong
 
-/**
- * Builds player sources for YouTube streams. googlevideo.com expects requests that look
- * like the client the URL was issued for (same approach as NewPipe's YoutubeHttpDataSource).
- */
+/** A side-loaded caption track (only the one the user picked is ever downloaded). */
+data class CaptionTrack(val url: String, val mimeType: String, val language: String)
+
+/** Builds player sources for YouTube streams, with optional captions. */
 @OptIn(UnstableApi::class)
 class MediaSources {
 
@@ -37,65 +42,56 @@ class MediaSources {
         ResolvingDataSource.Factory(http) { spec -> youtubeRequest(spec, addRequestNumber = true) }
     private val hlsFactory =
         ResolvingDataSource.Factory(http) { spec -> youtubeRequest(spec, addRequestNumber = false) }
+    private val subtitleParserFactory = DefaultSubtitleParserFactory()
 
     /** [metadata] is shown in the notification and on the lock screen. */
-    fun build(playback: Playback, metadata: MediaMetadata): MediaSource {
+    fun build(playback: Playback, metadata: MediaMetadata, caption: CaptionTrack?): MediaSource {
         fun item(url: String) = MediaItem.Builder().setUri(url).setMediaMetadata(metadata).build()
-        playback.hlsUrl?.let {
-            return HlsMediaSource.Factory(hlsFactory).createMediaSource(item(it))
+        val main = playback.hlsUrl?.let {
+            HlsMediaSource.Factory(hlsFactory).createMediaSource(item(it))
+        } ?: run {
+            val progressive = ProgressiveMediaSource.Factory(progressiveFactory)
+            val video = playback.videoUrl?.let { progressive.createMediaSource(item(it)) }
+            val audio = playback.audioUrl?.let { progressive.createMediaSource(item(it)) }
+            when {
+                video != null && audio != null -> MergingMediaSource(video, audio)
+                video != null -> video
+                audio != null -> audio
+                else -> error("Nothing to play")
+            }
         }
-        val progressive = ProgressiveMediaSource.Factory(progressiveFactory)
-        val video = playback.videoUrl?.let { progressive.createMediaSource(item(it)) }
-        val audio = playback.audioUrl?.let { progressive.createMediaSource(item(it)) }
-        return when {
-            video != null && audio != null -> MergingMediaSource(video, audio)
-            video != null -> video
-            audio != null -> audio
-            else -> error("Nothing to play")
+        return if (caption != null) MergingMediaSource(main, captionSource(caption)) else main
+    }
+
+    // Same construction Media3's DefaultMediaSourceFactory uses for side-loaded subtitles.
+    private fun captionSource(caption: CaptionTrack): MediaSource {
+        val format = Format.Builder()
+            .setSampleMimeType(caption.mimeType)
+            .setLanguage(caption.language)
+            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+            .build()
+        val extractors = ExtractorsFactory {
+            arrayOf<Extractor>(SubtitleExtractor(subtitleParserFactory.create(format), format))
         }
+        return ProgressiveMediaSource.Factory(http, extractors)
+            .createMediaSource(MediaItem.fromUri(caption.url))
     }
 
     private fun youtubeRequest(spec: DataSpec, addRequestNumber: Boolean): DataSpec {
         val uri = spec.uri
-        val host = uri.host.orEmpty()
-        if (!host.endsWith("googlevideo.com") || uri.path?.startsWith("/videoplayback") != true) {
-            return spec
-        }
+        if (!YoutubeRequests.isVideoPlayback(uri.host, uri.path)) return spec
 
         var url = uri.toString()
         if (addRequestNumber && !url.contains("&rn=")) {
             url += "&rn=" + requestNumber.getAndIncrement()
         }
-
         val headers = HashMap(spec.httpRequestHeaders)
-        when {
-            YoutubeParsingHelper.isWebStreamingUrl(url) ||
-                YoutubeParsingHelper.isWebEmbeddedPlayerStreamingUrl(url) -> {
-                headers["Origin"] = "https://www.youtube.com"
-                headers["Referer"] = "https://www.youtube.com"
-                headers["Sec-Fetch-Dest"] = "empty"
-                headers["Sec-Fetch-Mode"] = "cors"
-                headers["Sec-Fetch-Site"] = "cross-site"
-            }
-            YoutubeParsingHelper.isAndroidStreamingUrl(url) ->
-                headers["User-Agent"] = YoutubeParsingHelper.getAndroidUserAgent(null)
-            YoutubeParsingHelper.isIosStreamingUrl(url) ->
-                headers["User-Agent"] = YoutubeParsingHelper.getIosUserAgent(null)
-            YoutubeParsingHelper.isVisionOsStreamingUrl(url) ->
-                headers["User-Agent"] = YoutubeParsingHelper.getVisionOsUserAgent(null)
-        }
-        headers["TE"] = "trailers"
-
-        // YouTube's own clients fetch media with a tiny POST body; plain GETs get throttled or rejected.
+        headers.putAll(YoutubeRequests.headersFor(url))
         return spec.buildUpon()
             .setUri(Uri.parse(url))
             .setHttpMethod(DataSpec.HTTP_METHOD_POST)
-            .setHttpBody(POST_BODY)
+            .setHttpBody(YoutubeRequests.POST_BODY)
             .setHttpRequestHeaders(headers)
             .build()
-    }
-
-    private companion object {
-        val POST_BODY = byteArrayOf(0x78, 0)
     }
 }

@@ -40,6 +40,50 @@
     <string name="crash_title">LiteTube crashed</string>
     <string name="crash_message">Sorry about that. The report below stays on your phone. Tap Share if you want to send it to the developer.</string>
 
+    <string name="home">Home</string>
+    <string name="more_tools">More</string>
+    <string name="play_pause">Play or pause</string>
+    <string name="stop">Stop</string>
+
+    <string name="captions">Captions</string>
+    <string name="captions_off">Off</string>
+    <string name="captions_off_long">Off</string>
+    <string name="no_captions">This video has no captions</string>
+
+    <string name="comments">Comments</string>
+    <string name="comments_count">Comments (%1$s)</string>
+    <string name="comments_disabled">Comments are turned off for this video</string>
+    <string name="no_comments">No comments yet</string>
+    <string name="pinned">📌 Pinned</string>
+    <plurals name="show_replies">
+        <item quantity="one">Show %1$d reply</item>
+        <item quantity="other">Show %1$d replies</item>
+    </plurals>
+    <string name="show_replies_unknown">Show replies</string>
+
+    <string name="tool_download_video">Download video</string>
+    <string name="tool_download_audio">Download audio</string>
+    <string name="tool_download_audio_hint">M4A (AAC), plays everywhere, smaller than MP3 at the same quality</string>
+    <string name="tool_save_frame">Save current frame</string>
+    <string name="tool_summarize">Summarize</string>
+    <string name="tool_summarize_hint">Chapters and key moments, worked out on your phone</string>
+    <string name="downloads">Downloads</string>
+    <string name="downloading">Downloading</string>
+    <string name="download_starting">Starting…</string>
+    <string name="download_started">Download started. See the notification for progress.</string>
+    <string name="download_done">Saved to %1$s</string>
+    <string name="download_failed">Download failed: %1$s</string>
+    <string name="download_unavailable">No downloadable format for this video</string>
+    <string name="storage_permission_needed">Storage permission is needed to save files on this Android version</string>
+    <string name="frame_saved">Frame saved to %1$s</string>
+    <string name="frame_failed">Couldn\'t capture the frame</string>
+    <string name="frame_no_video">Switch to video first (audio-only mode has no picture)</string>
+    <string name="summarizing">Summarizing…</string>
+    <string name="summary_unavailable">This video has no captions or chapters to summarize</string>
+    <string name="summary_chapters">CHAPTERS</string>
+    <string name="summary_key_moments">KEY MOMENTS</string>
+    <string name="summary_note">Picked on your phone from the captions (%1$s). No AI service, nothing uploaded. Tap a line to jump there.</string>
+
     <string name="unsupported_link">LiteTube can\'t open this link</string>
 
     <string name="error_network">Network error. Check your connection.</string>

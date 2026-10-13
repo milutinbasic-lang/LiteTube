@@ -2,12 +2,15 @@ package app.litetube.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import app.litetube.CrashLog
 import app.litetube.R
 import app.litetube.data.Prefs
+import app.litetube.player.PlayerController
 
 abstract class BaseActivity : AppCompatActivity() {
 
@@ -42,6 +45,35 @@ abstract class BaseActivity : AppCompatActivity() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    /** Every screen except Home gets a Home button in its toolbar. */
+    protected open val showHomeAction = true
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        if (showHomeAction) {
+            menu.add(Menu.NONE, R.id.action_home, Menu.NONE, R.string.home)
+                .setIcon(R.drawable.ic_home)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+        }
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.action_home) {
+            goHome()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    /** Back to the feed. Unlike Back in the player, this keeps the current video playing. */
+    fun goHome() {
+        PlayerController.closingToHome = true
+        startActivity(
+            Intent(this, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        )
     }
 
     protected fun setupToolbar(toolbar: Toolbar, showUp: Boolean = true) {

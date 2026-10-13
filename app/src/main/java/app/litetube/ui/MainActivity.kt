@@ -4,6 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import androidx.core.view.isVisible
+import androidx.media3.common.Player
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import app.litetube.R
@@ -13,6 +15,7 @@ import app.litetube.data.Subscriptions
 import app.litetube.data.VideoItem
 import app.litetube.data.YouTube
 import app.litetube.databinding.ActivityListBinding
+import app.litetube.player.PlayerController
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,6 +36,13 @@ class MainActivity : BaseActivity() {
     )
     private var refreshJob: Job? = null
     private var loadedVersion = -1
+    private var listening = false
+
+    override val showHomeAction = false
+
+    private val nowPlayingListener = object : Player.Listener {
+        override fun onEvents(player: Player, events: Player.Events) = updateNowPlaying()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +54,51 @@ class MainActivity : BaseActivity() {
         b.list.setHasFixedSize(true)
         b.list.adapter = adapter
         b.swipe.setOnRefreshListener { refresh() }
+
+        // Mini player, like YouTube's minimized video.
+        b.nowPlaying.open.setOnClickListener {
+            startActivity(
+                Intent(this, PlayerActivity::class.java)
+                    .putExtra(PlayerActivity.EXTRA_RESUME, true)
+                    .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            )
+        }
+        b.nowPlaying.playPause.setOnClickListener {
+            val player = PlayerController.player
+            if (player.playWhenReady) player.pause() else player.play()
+        }
+        b.nowPlaying.close.setOnClickListener {
+            PlayerController.stop()
+            updateNowPlaying()
+        }
+    }
+
+    private fun updateNowPlaying() {
+        val info = PlayerController.info
+        b.nowPlaying.root.isVisible = PlayerController.isActive && info != null
+        if (info == null || !PlayerController.isActive) return
+        b.nowPlaying.title.text = info.name
+        b.nowPlaying.subtitle.text = info.uploaderName
+        b.nowPlaying.playPause.setImageResource(
+            if (PlayerController.player.playWhenReady) R.drawable.ic_pause else R.drawable.ic_play
+        )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (PlayerController.isActive && !listening) {
+            PlayerController.player.addListener(nowPlayingListener)
+            listening = true
+        }
+        updateNowPlaying()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (listening) {
+            PlayerController.player.removeListener(nowPlayingListener)
+            listening = false
+        }
     }
 
     override fun onStart() {

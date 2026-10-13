@@ -52,5 +52,18 @@ data class ChannelItem(
     val subscribers: Long,
 ) : ListItem
 
+data class Comment(
+    val author: String,
+    val textHtml: String?,
+    val textPlain: String?,
+    val likes: Int,
+    val date: String?,
+    val replyCount: Int,
+    val repliesPage: org.schabi.newpipe.extractor.Page?,
+    val pinned: Boolean,
+    val hearted: Boolean,
+    val isReply: Boolean,
+)
+
 fun JSONObject.optStringOrNull(key: String): String? =
     if (isNull(key)) null else optString(key).ifEmpty { null }
