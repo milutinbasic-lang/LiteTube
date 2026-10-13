@@ -41,10 +41,14 @@ back_swipe() {  # system back gesture: swipe in from the left edge
 adb shell cmd overlay enable com.android.internal.systemui.navbar.gestural || true
 sleep 3
 # Scenario A: fullscreen button, then back gesture
-adb shell input tap 160 100   # show controls
-sleep 1
-tap_id app.litetube:id/exo_fullscreen > fs_tap.txt 2>&1
-sleep 4
+# Controls may be hidden: if the fullscreen button isn't on screen, tap the video and retry.
+if ! tap_id app.litetube:id/exo_fullscreen > fs_tap.txt 2>&1; then
+  adb shell input tap 160 90
+  sleep 1
+  tap_id app.litetube:id/exo_fullscreen >> fs_tap.txt 2>&1 || echo "fullscreen button not found" >> fs_tap.txt
+fi
+sample A0
+sleep 2
 back_swipe
 sample A
 # Scenario B: rotate the device to landscape, then back gesture

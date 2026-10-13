@@ -138,7 +138,10 @@ class PlayerActivity : BaseActivity() {
         b.playerView.player = player
         b.playerView.setShowNextButton(false)
         b.playerView.setShowPreviousButton(false)
-        b.playerView.setFullscreenButtonClickListener { toggleFullscreen() }
+        // Go to the state the button asks for (never toggle): Media3 also calls this listener when
+        // we merely sync the button icon after a rotation, and toggling there caused an endless
+        // portrait/landscape flicker loop.
+        b.playerView.setFullscreenButtonClickListener { fullscreen -> setFullscreen(fullscreen) }
         b.playerView.controllerShowTimeoutMs = CONTROLS_HIDE_MS.toInt()
         b.playerView.controllerHideOnTouch = true
         player.addListener(playerListener)
@@ -559,11 +562,12 @@ class PlayerActivity : BaseActivity() {
 
     private fun isLandscape() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    private fun toggleFullscreen() {
-        requestedOrientation = if (isLandscape()) {
-            ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
-        } else {
+    private fun setFullscreen(fullscreen: Boolean) {
+        if (fullscreen == isLandscape()) return
+        requestedOrientation = if (fullscreen) {
             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
         }
     }
 

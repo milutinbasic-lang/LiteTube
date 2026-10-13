@@ -35,7 +35,7 @@ show('activity.txt', 'ACTIVITY')
 show('media.txt', 'MEDIA_SESSION')
 show('media_bg.txt', 'MEDIA_SESSION_BACKGROUND')
 screen('ui_channel.xml', 'SCREEN_CHANNEL')
-for label in ('A', 'B'):
+for label in ('A0', 'A', 'B'):
     show(f'orient_{label}.txt', f'ORIENTATION_{label}')
 show('fs_tap.txt', 'FULLSCREEN_TAP')
 orient = [l for l in log.splitlines() if 'LiteTube: orientation' in l]
