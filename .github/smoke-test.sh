@@ -57,6 +57,13 @@ adb shell settings put system user_rotation 1
 sleep 4
 back_swipe
 sample B
+# Scenario C: same, but with the Back key (in case the emulator didn't treat the swipe as Back)
+adb shell settings put system user_rotation 0
+sleep 3
+adb shell settings put system user_rotation 1
+sleep 4
+adb shell input keyevent KEYCODE_BACK
+sample C
 adb shell settings put system user_rotation 0
 sleep 2
 
