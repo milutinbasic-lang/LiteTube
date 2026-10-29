@@ -3,6 +3,7 @@ package io.github.milutinbasic_lang.instachat
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.NotificationManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -29,12 +30,15 @@ import android.widget.Toast
  * other part of Instagram blocked or hidden. You log in on Instagram's real login page; the
  * session cookie is kept in the app's private storage, so you stay logged in across restarts
  * until you log out (launcher long-press → Log out) or Instagram ends the session.
+ * While the app is in the background, [MessageCheckService] shows notifications for new messages.
  */
 class MainActivity : Activity() {
 
     private lateinit var webView: WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var pendingPermission: PermissionRequest? = null
+    /** The last page that was allowed; a post or reel can't lead on to another one. */
+    private var currentUrl: String? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,10 +61,7 @@ class MainActivity : Activity() {
             mediaPlaybackRequiresUserGesture = false
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             setSupportMultipleWindows(false)
-            // Instagram nags WebViews to "open the app"; look like regular mobile Chrome instead.
-            userAgentString = userAgentString
-                .replace("; wv)", ")")
-                .replace(Regex("Version/\\d+(\\.\\d+)* "), "")
+            userAgentString = cleanUserAgent(userAgentString)
         }
         webView.webViewClient = ChatOnlyClient()
         webView.webChromeClient = ChromeClient()
@@ -68,8 +69,10 @@ class MainActivity : Activity() {
         when {
             savedInstanceState != null -> webView.restoreState(savedInstanceState)
             intent?.action == ACTION_LOGOUT -> logOut()
+            else -> openChatFrom(intent)
         }
         if (webView.url == null) webView.loadUrl(UrlRules.INBOX_URL)
+        askForNotificationPermission()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -77,7 +80,26 @@ class MainActivity : Activity() {
         if (intent.action == ACTION_LOGOUT) {
             logOut()
             webView.loadUrl(UrlRules.INBOX_URL)
+        } else {
+            openChatFrom(intent)
         }
+    }
+
+    /** Tapping a message notification opens that chat. */
+    private fun openChatFrom(intent: Intent?) {
+        val url = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString ?: return
+        if (UrlRules.decide(url) == UrlRules.Action.ALLOW) webView.loadUrl(url)
+    }
+
+    // Android 13+ needs permission to show notifications. Asked once; can be changed later in
+    // the system settings.
+    private fun askForNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        val prefs = getSharedPreferences("app", MODE_PRIVATE)
+        if (prefs.getBoolean("asked_notifications", false)) return
+        prefs.edit().putBoolean("asked_notifications", true).apply()
+        requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFICATIONS)
     }
 
     /** Forgets the session: cookies, page storage and cache. The login page shows next. */
@@ -88,6 +110,8 @@ class MainActivity : Activity() {
         WebStorage.getInstance().deleteAllData()
         webView.clearCache(true)
         webView.clearHistory()
+        currentUrl = null
+        MessageCheckService.cancel(this)
         Toast.makeText(this, R.string.logged_out, Toast.LENGTH_SHORT).show()
     }
 
@@ -110,6 +134,19 @@ class MainActivity : Activity() {
         webView.saveState(outState)
     }
 
+    override fun onStart() {
+        super.onStart()
+        isVisible = true
+        // The inbox shows what's new; notifications for it are no longer needed.
+        getSystemService(NotificationManager::class.java).cancelAll()
+    }
+
+    override fun onStop() {
+        isVisible = false
+        MessageCheckService.start(this)
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         webView.onResume()
@@ -129,7 +166,11 @@ class MainActivity : Activity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (webView.canGoBack()) webView.goBack() else @Suppress("DEPRECATION") super.onBackPressed()
+        // First let the page close an open video viewer, which has no history entry of its own.
+        webView.evaluateJavascript("!!(window.__chatOnlyBack && window.__chatOnlyBack())") { closed ->
+            if (closed == "true") return@evaluateJavascript
+            if (webView.canGoBack()) webView.goBack() else finish()
+        }
     }
 
     private fun openExternally(url: String) {
@@ -162,7 +203,7 @@ class MainActivity : Activity() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             if (!request.isForMainFrame) return false
             val url = request.url.toString()
-            return when (UrlRules.decide(url)) {
+            return when (UrlRules.decide(url, currentUrl)) {
                 UrlRules.Action.ALLOW -> false
                 UrlRules.Action.GO_TO_INBOX -> {
                     view.loadUrl(UrlRules.INBOX_URL)
@@ -200,8 +241,8 @@ class MainActivity : Activity() {
         }
 
         private fun guard(view: WebView, url: String) {
-            when (UrlRules.decide(url)) {
-                UrlRules.Action.ALLOW -> Unit
+            when (UrlRules.decide(url, currentUrl)) {
+                UrlRules.Action.ALLOW -> currentUrl = url
                 UrlRules.Action.GO_TO_INBOX -> view.post { view.loadUrl(UrlRules.INBOX_URL) }
                 UrlRules.Action.BLOCK -> {
                     showBlocked()
@@ -302,5 +343,15 @@ class MainActivity : Activity() {
         const val ACTION_LOGOUT = "io.github.milutinbasic_lang.instachat.LOGOUT"
         private const val REQUEST_FILE = 1
         private const val REQUEST_PERMISSION = 2
+        private const val REQUEST_NOTIFICATIONS = 3
+
+        /** Whether the app is on screen; no notifications are needed then. */
+        @Volatile
+        var isVisible = false
+
+        // Instagram nags WebViews to "open the app"; look like regular mobile Chrome instead.
+        fun cleanUserAgent(userAgent: String) = userAgent
+            .replace("; wv)", ")")
+            .replace(Regex("Version/\\d+(\\.\\d+)* "), "")
     }
 }

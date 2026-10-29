@@ -41,14 +41,53 @@ class UrlRulesTest {
     fun nonChatPagesAreBlocked() = check(
         Action.BLOCK,
         "https://www.instagram.com/reels/",
-        "https://www.instagram.com/reel/C1a2b3c4d5/",
-        "https://www.instagram.com/p/C1a2b3c4d5/",
         "https://www.instagram.com/explore/",
         "https://www.instagram.com/explore/search/",
         "https://www.instagram.com/stories/someone/123/",
         "https://www.instagram.com/someone/",
         "https://www.instagram.com/accounts/activity/",
     )
+
+    private val chat = "https://www.instagram.com/direct/t/1234567890/"
+
+    @Test
+    fun postOrReelSentInAChatOpens() {
+        for (url in listOf(
+            "https://www.instagram.com/p/C1a2b3c4d5/",
+            "https://www.instagram.com/reel/C1a2b3c4d5/",
+            "https://www.instagram.com/reels/C1a2b3c4d5/",
+            "https://www.instagram.com/someone/p/C1a2b3c4d5/?img_index=1",
+            "https://www.instagram.com/tv/C1a2b3c4d5",
+        )) {
+            assertEquals(url, Action.ALLOW, UrlRules.decide(url, from = chat))
+        }
+    }
+
+    @Test
+    fun staysOnTheSamePost() {
+        val post = "https://www.instagram.com/p/C1a2b3c4d5/"
+        assertEquals(Action.ALLOW, UrlRules.decide("https://www.instagram.com/p/C1a2b3c4d5/?img_index=2", post))
+        assertEquals(Action.ALLOW, UrlRules.decide("https://www.instagram.com/p/C1a2b3c4d5/comments/", post))
+        assertEquals(Action.ALLOW, UrlRules.decide(chat, post))
+    }
+
+    @Test
+    fun cannotScrollOnToAnotherPostOrReel() {
+        val reel = "https://www.instagram.com/reels/C1a2b3c4d5/"
+        assertEquals(Action.BLOCK, UrlRules.decide("https://www.instagram.com/reels/Zz9y8x7w6v/", reel))
+        assertEquals(Action.BLOCK, UrlRules.decide("https://www.instagram.com/p/Zz9y8x7w6v/", reel))
+        assertEquals(Action.BLOCK, UrlRules.decide("https://www.instagram.com/reels/", reel))
+        assertEquals(Action.BLOCK, UrlRules.decide("https://www.instagram.com/someone/", reel))
+    }
+
+    @Test
+    fun mediaIds() {
+        assertEquals("C1a2b3c4d5", UrlRules.mediaId("https://www.instagram.com/reel/C1a2b3c4d5/"))
+        assertEquals(null, UrlRules.mediaId("https://www.instagram.com/reels/"))
+        assertEquals(null, UrlRules.mediaId("https://www.instagram.com/reels/audio/123456789/"))
+        assertEquals(null, UrlRules.mediaId(chat))
+        assertEquals(null, UrlRules.mediaId("https://example.com/p/C1a2b3c4d5/"))
+    }
 
     @Test
     fun otherSitesOpenOutside() = check(

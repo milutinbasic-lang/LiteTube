@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status bar icon: the chat bubble with the lightning bolt cut out. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <group android:pivotX="24" android:pivotY="24" android:scaleX="0.92" android:scaleY="0.92">
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M24,2C10.2,2 0,11.9 0,24.6C0,31.3 2.8,37 7.4,41L7.4,50L15.9,45.4C18.5,46.2 21.2,46.6 24,46.6C37.8,46.6 48,36.7 48,24.3C48,11.9 37.8,2 24,2ZM11,31L21.5,19.5L27,24.8L37,17.5L26.5,29L21,23.7Z" />
+    </group>
+</vector>
