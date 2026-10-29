@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A chat bubble with a lightning bolt, drawn in the middle 48 of 108 units (adaptive icon safe zone). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30C40.2,30 30,39.9 30,52.6C30,59.3 32.8,65 37.4,69L37.4,78L45.9,73.4C48.5,74.2 51.2,74.6 54,74.6C67.8,74.6 78,64.7 78,52.3C78,39.9 67.8,30 54,30Z" />
+    <path
+        android:fillColor="#C13584"
+        android:pathData="M41,59L51.5,47.5L57,52.8L67,45.5L56.5,57L51,51.7Z" />
+</vector>
