@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phosh / libadwaita dark palette, as on postmarketOS. -->
+<resources>
+    <color name="panel">#000000</color>
+    <color name="overview">#1d1d1d</color>
+    <color name="entry">#3a3a3a</color>
+    <color name="text">#ffffff</color>
+    <color name="text_dim">#99ffffff</color>
+    <color name="divider">#1affffff</color>
+    <color name="accent">#3584e4</color>
+</resources>

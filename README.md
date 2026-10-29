@@ -184,3 +184,8 @@ GPL-3.0-or-later. See [LICENSE](LICENSE). Uses NewPipe Extractor (GPL-3.0), Andr
 OkHttp and Coil (Apache-2.0).
 
 LiteTube is not affiliated with or endorsed by YouTube or Google.
+
+## LiteLauncher
+
+This repository also contains **LiteLauncher**, a lightweight Android home screen styled after
+postmarketOS's Phosh shell. See [`launcher/README.md`](launcher/README.md).
