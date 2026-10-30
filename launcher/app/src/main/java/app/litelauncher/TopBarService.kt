@@ -178,6 +178,7 @@ class TopBarService : AccessibilityService() {
     }
 
     private fun setStatusBarShown(shown: Boolean) {
+        android.util.Log.d("LLTopBar", "setStatusBarShown $shown (was $statusBarShown)") // TEMP
         if (shown == statusBarShown) return
         statusBarShown = shown
         // The window itself stays (hiding it would also stop the insets that tell us when to come
