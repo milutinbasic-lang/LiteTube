@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LiteLauncher Top Bar</string>
+    <string name="top_bar_service_label">LiteLauncher top bar</string>
+    <string name="top_bar_service_summary">Shows LiteLauncher\'s top bar in place of the status bar in every app</string>
+    <string name="top_bar_service_description">Draws LiteLauncher\'s postmarketOS-style top bar over Android\'s status bar in every app. Pulling it down opens notifications (left half) or quick settings (right half). It reads nothing on your screen and collects no data. Android only lets an app draw over the status bar as an accessibility service.</string>
+    <string name="setup_hint">Turn on \"LiteLauncher top bar\"</string>
+</resources>

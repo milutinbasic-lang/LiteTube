@@ -10,6 +10,8 @@
     <!-- Android 11+ package visibility: see every launchable app, and the default apps
          offered as first-run favorites. -->
     <queries>
+        <!-- The optional "top bar in all apps" add-on, to tell whether it's installed and on. -->
+        <package android:name="io.github.milutinbasic_lang.litelauncher.topbar" />
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -55,19 +57,5 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Optional: shows the top bar over Android's status bar in every app. -->
-        <service
-            android:name=".TopBarService"
-            android:exported="true"
-            android:label="@string/top_bar_service_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/top_bar_service" />
-        </service>
     </application>
 </manifest>

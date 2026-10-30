@@ -24,7 +24,12 @@ import java.util.Locale
  * so it costs nothing when you're in another app.
  */
 @Suppress("DEPRECATION") // The old, permission-free APIs still work and keep minSdk 21.
-class StatusMonitor(private val context: Context, private val bar: TopBarView, private val home: HomeView?) {
+class StatusMonitor(
+    private val context: Context,
+    private val bar: TopBarView,
+    /** Also told the time and date each minute (the launcher's home screen clock). */
+    private val onClock: ((time: String, date: String) -> Unit)? = null,
+) {
 
     private val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     private val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager?
@@ -111,7 +116,7 @@ class StatusMonitor(private val context: Context, private val bar: TopBarView, p
         val now = Date()
         val time = clockFormat.format(now)
         bar.setTime(time)
-        home?.setTime(time, dateFormat.format(now))
+        onClock?.invoke(time, dateFormat.format(now))
     }
 
     private fun onBattery(intent: Intent) {

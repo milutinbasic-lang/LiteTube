@@ -1,5 +1,6 @@
 package app.litelauncher
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityOptions
@@ -30,6 +31,7 @@ import android.view.View
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityManager
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.inputmethod.EditorInfo
@@ -116,7 +118,7 @@ class LauncherActivity : Activity() {
         home.onLongPress = ::showHomeMenu
 
         topBar = findViewById(R.id.top_bar)
-        status = StatusMonitor(this, topBar, home)
+        status = StatusMonitor(this, topBar, home::setTime)
         topBar.onPull = ::expandStatusBar
 
         search = findViewById(R.id.search)
@@ -149,7 +151,6 @@ class LauncherActivity : Activity() {
         applyWallpaperMode()
         favorites = prefs.getString(KEY_FAVORITES, null)?.split('\n')?.filter { it.isNotEmpty() } ?: emptyList()
         launcherApps.registerCallback(packageCallback, main)
-        TopBarService.onStateChanged = ::applyStatusBarMode
     }
 
     /**
@@ -225,7 +226,6 @@ class LauncherActivity : Activity() {
     }
 
     override fun onDestroy() {
-        if (TopBarService.onStateChanged == ::applyStatusBarMode) TopBarService.onStateChanged = null
         launcherApps.unregisterCallback(packageCallback)
         workerThread.quitSafely()
         super.onDestroy()
@@ -315,7 +315,7 @@ class LauncherActivity : Activity() {
         menu.menu.findItem(MENU_THEMED_ICONS).isChecked = icons.themed
         menu.menu.add(0, MENU_SYSTEM_WALLPAPER, 1, R.string.system_wallpaper).isCheckable = true
         menu.menu.findItem(MENU_SYSTEM_WALLPAPER).isChecked = prefs.getBoolean(KEY_SYSTEM_WALLPAPER, false)
-        val everywhere = TopBarService.instance != null
+        val everywhere = isTopBarAddonOn()
         menu.menu.add(0, MENU_TOP_BAR_EVERYWHERE, 2, R.string.top_bar_everywhere).isCheckable = true
         menu.menu.findItem(MENU_TOP_BAR_EVERYWHERE).isChecked = everywhere
         menu.menu.add(0, MENU_SYSTEM_STATUS_BAR, 3, R.string.system_status_bar).isCheckable = true
@@ -325,7 +325,11 @@ class LauncherActivity : Activity() {
         }
         menu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                MENU_TOP_BAR_EVERYWHERE -> if (everywhere) turnOffTopBarService() else setUpTopBarService()
+                MENU_TOP_BAR_EVERYWHERE -> when {
+                    everywhere -> turnOffTopBarService()
+                    isTopBarAddonInstalled() -> setUpTopBarService()
+                    else -> explainTopBarAddon()
+                }
                 MENU_SYSTEM_STATUS_BAR -> {
                     prefs.edit().putBoolean(KEY_SYSTEM_STATUS_BAR, !item.isChecked).apply()
                     applyStatusBarMode()
@@ -358,13 +362,31 @@ class LauncherActivity : Activity() {
             .show()
     }
 
+    private fun explainTopBarAddon() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.top_bar_addon_title)
+            .setMessage(R.string.top_bar_addon_message)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
     private fun turnOffTopBarService() {
-        if (Build.VERSION.SDK_INT >= 24) {
-            TopBarService.instance?.turnOff()
-        } else {
-            Toast.makeText(this, R.string.turn_off_in_settings, Toast.LENGTH_LONG).show()
-            openAccessibilitySettings()
-        }
+        Toast.makeText(this, R.string.turn_off_in_settings, Toast.LENGTH_LONG).show()
+        openAccessibilitySettings()
+    }
+
+    private fun isTopBarAddonInstalled() = try {
+        packageManager.getPackageInfo(TOP_BAR_ADDON, 0)
+        true
+    } catch (e: PackageManager.NameNotFoundException) {
+        false
+    }
+
+    /** Whether the add-on's service is switched on (it then draws our bar over Android's). */
+    private fun isTopBarAddonOn(): Boolean {
+        val manager = getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        return manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+            .any { it.resolveInfo?.serviceInfo?.packageName == TOP_BAR_ADDON }
     }
 
     private fun openAccessibilitySettings() {
@@ -377,12 +399,12 @@ class LauncherActivity : Activity() {
     /**
      * Phosh's top bar replaces Android's status bar by default. With "Use Android status bar"
      * (for phones whose own bar you prefer), our bar is removed and Android's is shown instead.
-     * With the top bar service on, Android's bar is also shown here, with the service's copy of
+     * With the Top Bar add-on's service on, Android's bar is also shown here, with the service's copy of
      * our bar drawn over it, so the launcher looks the same as every other app.
      */
     @Suppress("DEPRECATION")
     private fun applyStatusBarMode() {
-        val system = useSystemStatusBar() || TopBarService.instance != null
+        val system = useSystemStatusBar() || isTopBarAddonOn()
         if (system != ownBarHidden && started) {
             status.stop()
             status.start(withBar = !system)
@@ -598,6 +620,7 @@ class LauncherActivity : Activity() {
         const val MENU_SYSTEM_WALLPAPER = 5
         const val MENU_SYSTEM_STATUS_BAR = 6
         const val MENU_TOP_BAR_EVERYWHERE = 7
+        const val TOP_BAR_ADDON = "io.github.milutinbasic_lang.litelauncher.topbar"
         const val KEY_SYSTEM_STATUS_BAR = "system_status_bar"
         const val KEY_THEMED_ICONS = "themed_icons"
         const val KEY_SYSTEM_WALLPAPER = "system_wallpaper"

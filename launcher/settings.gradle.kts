@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "LiteLauncher"
-include(":app")
+include(":app", ":topbar")

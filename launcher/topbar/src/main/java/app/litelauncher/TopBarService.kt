@@ -20,6 +20,10 @@ import android.view.accessibility.AccessibilityEvent
  * Puts LiteLauncher's top bar over Android's status bar in every app, as Phosh's panel is on
  * postmarketOS.
  *
+ * It lives in its own small add-on app: Google Play Protect blocks installing any downloaded app
+ * that contains an accessibility service, and the launcher itself shouldn't be blocked for an
+ * optional feature.
+ *
  * An accessibility service is the only way a normal app can draw over the status bar. This one
  * reads nothing on screen: it owns the overlay window, notices when the foreground window changes
  * (to step aside while an app is fullscreen, like videos or the camera) and, when you pull the
@@ -57,18 +61,15 @@ class TopBarService : AccessibilityService() {
         trackStatusBarVisibility(view)
         windowManager().addView(view, layoutParams())
         bar = view
-        monitor = StatusMonitor(this, view, null)
+        monitor = StatusMonitor(this, view)
         startMonitor()
         registerReceiver(screenReceiver, IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
         })
-        instance = this
-        onStateChanged?.invoke()
     }
 
     override fun onDestroy() {
-        instance = null
         try {
             unregisterReceiver(screenReceiver)
         } catch (e: IllegalArgumentException) {
@@ -79,7 +80,6 @@ class TopBarService : AccessibilityService() {
         bar?.let { windowManager().removeView(it) }
         bar = null
         super.onDestroy()
-        onStateChanged?.invoke()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -95,11 +95,6 @@ class TopBarService : AccessibilityService() {
     }
 
     override fun onInterrupt() {}
-
-    /** Turns the service off again (from the launcher's menu). */
-    fun turnOff() {
-        if (Build.VERSION.SDK_INT >= 24) disableSelf()
-    }
 
     private fun startMonitor() {
         if (!monitoring) { monitor?.start(withBar = true); monitoring = true }
@@ -201,14 +196,5 @@ class TopBarService : AccessibilityService() {
         // back); it just turns invisible and lets touches through to the fullscreen app.
         bar?.let { windowManager().updateViewLayout(it, layoutParams()) }
         if (shown) startMonitor() else stopMonitor()
-    }
-
-    companion object {
-        /** The running service, if the user has turned it on. It lives in the launcher's process. */
-        var instance: TopBarService? = null
-            private set
-
-        /** Called on the main thread when the service starts or stops. */
-        var onStateChanged: (() -> Unit)? = null
     }
 }

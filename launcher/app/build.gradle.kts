@@ -46,6 +46,9 @@ android {
         }
     }
 
+    sourceSets["main"].java.srcDir("../shared/java")
+    sourceSets["main"].res.srcDir("../shared/res")
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

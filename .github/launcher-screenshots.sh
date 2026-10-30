@@ -55,8 +55,9 @@ fi
 
 adb shell dumpsys meminfo "$PKG" > shots/meminfo.txt
 
-# "Top bar in all apps": turn the accessibility service on as the Settings screen would.
-adb shell settings put secure enabled_accessibility_services "$PKG/app.litelauncher.TopBarService"
+# "Top bar in all apps": install the add-on and turn its service on as Settings would.
+adb install -r launcher/topbar/build/outputs/apk/release/topbar-release.apk
+adb shell settings put secure enabled_accessibility_services "$PKG.topbar/app.litelauncher.TopBarService"
 adb shell settings put secure accessibility_enabled 1
 sleep 4
 adb shell settings get secure enabled_accessibility_services > shots/a11y.txt
@@ -81,6 +82,8 @@ adb exec-out screencap -p > shots/11-everywhere-camera.png
 adb shell input keyevent KEYCODE_HOME
 sleep 2
 adb shell dumpsys meminfo "$PKG" > shots/meminfo-everywhere.txt
+adb shell dumpsys meminfo "$PKG.topbar" > shots/meminfo-topbar.txt
+adb shell dumpsys package "$PKG" | grep -i "permission" > shots/launcher-permissions.txt
 adb logcat -d > shots/logcat.txt
 grep -E "FATAL|AndroidRuntime|litelauncher" shots/logcat.txt | head -50 > shots/errors.txt
 true

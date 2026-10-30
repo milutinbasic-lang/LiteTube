@@ -28,10 +28,25 @@ jobs:
           LITETUBE_SIGN_WITH_DEBUG_KEY: "1"
         run: ./gradlew --no-daemon -p launcher assembleRelease
 
-      - name: APK size
-        run: ls -l launcher/app/build/outputs/apk/release/
+      - name: Name the APKs
+        run: |
+          mkdir -p out
+          cp launcher/app/build/outputs/apk/release/app-release.apk out/litelauncher.apk
+          cp launcher/topbar/build/outputs/apk/release/topbar-release.apk out/litelauncher-topbar.apk
+          ls -l out
+
+      # Play Protect blocks downloaded apps that contain an accessibility service, so only the
+      # optional add-on may have one.
+      - name: Check the launcher has no accessibility service
+        run: |
+          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | tail -1)
+          if "$AAPT2" dump xmltree out/litelauncher.apk --file AndroidManifest.xml | grep -q BIND_ACCESSIBILITY_SERVICE; then
+            echo "::error title=PLAY_PROTECT::litelauncher.apk declares an accessibility service"
+            exit 1
+          fi
+          "$AAPT2" dump xmltree out/litelauncher-topbar.apk --file AndroidManifest.xml | grep -q BIND_ACCESSIBILITY_SERVICE
 
       - uses: actions/upload-artifact@v4
         with:
           name: litelauncher-apk
-          path: launcher/app/build/outputs/apk/release/*.apk
+          path: out/*.apk
