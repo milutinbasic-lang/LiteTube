@@ -7,5 +7,7 @@
     <string name="app_info">App Info</string>
     <string name="uninstall">Uninstall</string>
     <string name="cant_open">Can\'t open %1$s</string>
-    <string name="home_bar">Show apps</string>
+    <string name="home_bar">Show or hide apps</string>
+    <string name="themed_icons">postmarketOS icons</string>
+    <string name="system_wallpaper">Use system wallpaper</string>
 </resources>

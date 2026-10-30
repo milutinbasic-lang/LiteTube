@@ -158,6 +158,10 @@ class TopBarView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
         }
     }
 
+    init {
+        setBackgroundColor(0xff000000.toInt())
+    }
+
     private var downY = 0f
     private var pulled = false
 

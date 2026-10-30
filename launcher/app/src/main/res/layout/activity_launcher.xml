@@ -11,75 +11,98 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
-    <!-- Phosh's overview: search entry, favorites, then every app. -->
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@color/overview"
-        android:focusableInTouchMode="true"
-        android:orientation="vertical">
+        android:layout_weight="1">
 
-        <EditText
-            android:id="@+id/search"
+        <app.litelauncher.HomeView
+            android:id="@+id/home"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/search_bg"
-            android:drawableStart="@drawable/ic_search"
-            android:drawablePadding="10dp"
-            android:gravity="center_vertical"
-            android:hint="@string/search_apps"
-            android:imeOptions="actionGo|flagNoExtractUi"
-            android:importantForAutofill="no"
-            android:inputType="text|textNoSuggestions"
-            android:maxLines="1"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:textColor="@color/text"
-            android:textColorHint="@color/text_dim"
-            android:textSize="15sp" />
+            android:layout_height="match_parent">
 
+            <LinearLayout
+                android:id="@+id/dock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:orientation="horizontal"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="12dp" />
+        </app.litelauncher.HomeView>
+
+        <!-- The app drawer: Phosh's overview with a search entry, favorites, then every app. -->
         <LinearLayout
-            android:id="@+id/favorites"
+            android:id="@+id/drawer"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp" />
+            android:layout_height="match_parent"
+            android:background="@color/overview"
+            android:focusableInTouchMode="true"
+            android:orientation="vertical"
+            android:visibility="gone">
 
-        <View
-            android:id="@+id/favorites_divider"
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="6dp"
-            android:background="@color/divider" />
+            <EditText
+                android:id="@+id/search"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginEnd="24dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/search_bg"
+                android:drawableStart="@drawable/ic_search"
+                android:drawablePadding="10dp"
+                android:gravity="center_vertical"
+                android:hint="@string/search_apps"
+                android:imeOptions="actionGo|flagNoExtractUi"
+                android:importantForAutofill="no"
+                android:inputType="text|textNoSuggestions"
+                android:maxLines="1"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:textColor="@color/text"
+                android:textColorHint="@color/text_dim"
+                android:textSize="15sp" />
 
-        <GridView
-            android:id="@+id/grid"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:columnWidth="84dp"
-            android:fadingEdgeLength="24dp"
-            android:listSelector="@android:color/transparent"
-            android:numColumns="auto_fit"
-            android:overScrollMode="ifContentScrolls"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="8dp"
-            android:requiresFadingEdge="vertical"
-            android:scrollbars="none"
-            android:stretchMode="columnWidth"
-            android:verticalSpacing="4dp" />
-    </LinearLayout>
+            <LinearLayout
+                android:id="@+id/favorites"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp" />
+
+            <View
+                android:id="@+id/favorites_divider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginEnd="24dp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="6dp"
+                android:background="@color/divider" />
+
+            <GridView
+                android:id="@+id/grid"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:columnWidth="84dp"
+                android:fadingEdgeLength="24dp"
+                android:listSelector="@android:color/transparent"
+                android:numColumns="auto_fit"
+                android:overScrollMode="ifContentScrolls"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="8dp"
+                android:requiresFadingEdge="vertical"
+                android:scrollbars="none"
+                android:stretchMode="columnWidth"
+                android:verticalSpacing="4dp" />
+        </LinearLayout>
+    </FrameLayout>
 
     <app.litelauncher.HomeBarView
         android:id="@+id/home_bar"

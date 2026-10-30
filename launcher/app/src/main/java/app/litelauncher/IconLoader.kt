@@ -1,6 +1,6 @@
 package app.litelauncher
 
-import android.content.res.Resources
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
@@ -18,8 +18,13 @@ import java.util.WeakHashMap
  * the much larger source images (or adaptive-icon layers) apps ship with. Under memory pressure
  * the cache is simply dropped; icons are re-rendered as they scroll back into view.
  */
-class IconLoader(private val resources: Resources, private val worker: Handler, private val sizePx: Int) {
+class IconLoader(private val context: Context, private val worker: Handler, private val sizePx: Int) {
 
+    /** Use the postmarketOS-style icons from [IconTheme] where there is one. */
+    @Volatile
+    var themed = true
+
+    private val resources = context.resources
     private val main = Handler(Looper.getMainLooper())
     private val density = resources.displayMetrics.densityDpi
     private val empty = ColorDrawable(0)
@@ -56,7 +61,12 @@ class IconLoader(private val resources: Resources, private val worker: Handler, 
     }
 
     private fun render(app: App): Bitmap? = try {
-        val drawable = app.info.getBadgedIcon(density)
+        val themedIcon = if (themed) IconTheme.iconFor(app) else 0
+        val drawable = if (themedIcon != 0) {
+            context.packageManager.getUserBadgedIcon(resources.getDrawable(themedIcon, null), app.user)
+        } else {
+            app.info.getBadgedIcon(density)
+        }
         val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
         drawable.setBounds(0, 0, sizePx, sizePx)
         drawable.draw(Canvas(bitmap))

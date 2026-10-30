@@ -7,8 +7,13 @@ import android.graphics.Path
 import android.util.AttributeSet
 import android.view.View
 
-/** Phosh's home bar: a black strip with an up chevron. */
+/** Phosh's home bar: a black strip with a chevron that points down while the app drawer is open. */
 class HomeBarView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
+
+    var pointsDown = false
+        set(value) {
+            if (field != value) { field = value; invalidate() }
+        }
 
     private val dp = resources.displayMetrics.density
     private val barHeight = (32 * dp).toInt()
@@ -40,6 +45,13 @@ class HomeBarView(context: Context, attrs: AttributeSet?) : View(context, attrs)
     }
 
     override fun onDraw(canvas: Canvas) {
-        canvas.drawPath(chevron, paint)
+        if (pointsDown) {
+            canvas.save()
+            canvas.scale(1f, -1f, width / 2f, height / 2f)
+            canvas.drawPath(chevron, paint)
+            canvas.restore()
+        } else {
+            canvas.drawPath(chevron, paint)
+        }
     }
 }

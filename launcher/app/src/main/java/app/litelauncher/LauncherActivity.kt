@@ -10,6 +10,7 @@ import android.content.SharedPreferences
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.graphics.Rect
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -24,7 +25,9 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
+import android.view.MotionEvent
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.inputmethod.EditorInfo
@@ -39,9 +42,10 @@ import android.widget.Toast
 import java.text.Collator
 
 /**
- * The whole launcher: Phosh's overview screen, with a search entry, a row of favorites and a grid
- * of every app. Built only on framework widgets (GridView recycles its cells, and each cell is one
- * TextView), with one background thread for the app list and icons.
+ * The whole launcher, laid out like Phosh: a home screen (wallpaper, clock, favorites dock) and,
+ * pulled up over it, the app drawer (Phosh's overview: search entry, favorites, grid of every app).
+ * Built only on framework widgets (GridView recycles its cells, and each cell is one TextView),
+ * with one background thread for the app list and icons.
  */
 class LauncherActivity : Activity() {
 
@@ -51,6 +55,11 @@ class LauncherActivity : Activity() {
     private lateinit var icons: IconLoader
     private lateinit var status: StatusMonitor
 
+    private lateinit var root: View
+    private lateinit var home: HomeView
+    private lateinit var dock: LinearLayout
+    private lateinit var drawer: View
+    private lateinit var homeBar: HomeBarView
     private lateinit var search: EditText
     private lateinit var favoritesRow: LinearLayout
     private lateinit var favoritesDivider: View
@@ -65,6 +74,7 @@ class LauncherActivity : Activity() {
     private var favorites: List<String> = emptyList()
     private var appsDirty = true
     private var resumed = false
+    private var drawerOpen = false
     private var loadGeneration = 0
 
     private val packageCallback = object : LauncherApps.Callback() {
@@ -88,10 +98,19 @@ class LauncherActivity : Activity() {
         launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         userManager = getSystemService(Context.USER_SERVICE) as UserManager
         prefs = getSharedPreferences("launcher", Context.MODE_PRIVATE)
-        icons = IconLoader(resources, worker, (52 * resources.displayMetrics.density).toInt())
+        icons = IconLoader(this, worker, (52 * resources.displayMetrics.density).toInt())
+        icons.themed = prefs.getBoolean(KEY_THEMED_ICONS, true)
+
+        root = findViewById(R.id.root)
+        home = findViewById(R.id.home)
+        dock = findViewById(R.id.dock)
+        drawer = findViewById(R.id.drawer)
+        homeBar = findViewById(R.id.home_bar)
+        home.onSwipeUp = ::openDrawer
+        home.onLongPress = ::showHomeMenu
 
         val topBar = findViewById<TopBarView>(R.id.top_bar)
-        status = StatusMonitor(this, topBar)
+        status = StatusMonitor(this, topBar, home)
         topBar.onPull = ::expandStatusBar
 
         search = findViewById(R.id.search)
@@ -116,11 +135,11 @@ class LauncherActivity : Activity() {
             } else false
         }
 
-        findViewById<View>(R.id.home_bar).setOnClickListener {
-            if (search.text.isNotEmpty() || grid.firstVisiblePosition > 0) reset() else focusSearch()
-        }
+        homeBar.setOnClickListener { if (drawerOpen) closeDrawer(true) else openDrawer() }
+        grid.setOnTouchListener(PullDownToClose())
 
         setUpWindow()
+        applyWallpaperMode()
         favorites = prefs.getString(KEY_FAVORITES, null)?.split('\n')?.filter { it.isNotEmpty() } ?: emptyList()
         launcherApps.registerCallback(packageCallback, main)
     }
@@ -128,7 +147,6 @@ class LauncherActivity : Activity() {
     /** Hide Android's status bar (our top bar replaces it) and lay out around cutouts and the nav bar. */
     @Suppress("DEPRECATION")
     private fun setUpWindow() {
-        val root = findViewById<View>(R.id.root)
         if (Build.VERSION.SDK_INT >= 30) {
             window.setDecorFitsSystemWindows(false)
             window.insetsController?.let {
@@ -162,8 +180,8 @@ class LauncherActivity : Activity() {
 
     override fun onStop() {
         status.stop()
-        // Phosh forgets the search once you've left the overview.
-        if (search.text.isNotEmpty()) search.text.clear()
+        // Like Phosh, coming back after opening an app lands on the home screen.
+        closeDrawer(false)
         super.onStop()
     }
 
@@ -176,14 +194,14 @@ class LauncherActivity : Activity() {
     /** Home pressed while already home. */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        reset()
+        closeDrawer(true)
     }
 
     @Deprecated("Deprecated in Java")
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        // A launcher has nowhere to go back to; just leave search.
-        reset()
+        // A launcher has nowhere to go back to: leave search, then the drawer.
+        if (search.text.isNotEmpty()) search.text.clear() else closeDrawer(true)
     }
 
     override fun onTrimMemory(level: Int) {
@@ -191,16 +209,107 @@ class LauncherActivity : Activity() {
         if (level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND) icons.clear()
     }
 
-    private fun reset() {
-        search.text.clear()
-        hideKeyboard()
-        grid.smoothScrollToPosition(0)
+    // --- Home screen and drawer ---
+
+    private fun openDrawer() {
+        if (drawerOpen) return
+        drawerOpen = true
+        homeBar.pointsDown = true
+        drawer.visibility = View.VISIBLE
+        drawer.alpha = 0f
+        drawer.translationY = drawer.height * 0.15f
+        drawer.animate().alpha(1f).translationY(0f).setDuration(ANIMATION_MS).withLayer()
+            // The opaque drawer covers the home screen, so stop drawing it underneath.
+            .withEndAction { if (drawerOpen) home.visibility = View.INVISIBLE }
+            .start()
     }
 
-    private fun focusSearch() {
-        search.requestFocus()
-        (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-            .showSoftInput(search, InputMethodManager.SHOW_IMPLICIT)
+    private fun closeDrawer(animate: Boolean) {
+        if (!drawerOpen) return
+        drawerOpen = false
+        homeBar.pointsDown = false
+        hideKeyboard()
+        home.visibility = View.VISIBLE
+        drawer.animate().cancel()
+        if (animate) {
+            drawer.animate().alpha(0f).translationY(drawer.height * 0.15f).setDuration(ANIMATION_MS).withLayer()
+                .withEndAction { if (!drawerOpen) hideDrawer() }
+                .start()
+        } else {
+            hideDrawer()
+        }
+    }
+
+    private fun hideDrawer() {
+        drawer.visibility = View.GONE
+        if (search.text.isNotEmpty()) search.text.clear()
+        grid.setSelection(0)
+    }
+
+    /** Swiping down on the app grid while it's scrolled to the top closes the drawer. */
+    private inner class PullDownToClose : View.OnTouchListener {
+        private var downY = 0f
+        private var atTop = false
+
+        @SuppressLint("ClickableViewAccessibility")
+        override fun onTouch(v: View, event: MotionEvent): Boolean {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downY = event.y
+                    val first = grid.getChildAt(0)
+                    atTop = grid.firstVisiblePosition == 0 && (first == null || first.top >= grid.paddingTop)
+                }
+                MotionEvent.ACTION_MOVE ->
+                    if (atTop && event.y - downY > 96 * resources.displayMetrics.density) {
+                        atTop = false
+                        closeDrawer(true)
+                    }
+            }
+            return false
+        }
+    }
+
+    private fun showHomeMenu() {
+        val menu = PopupMenu(this, dock)
+        menu.menu.add(0, MENU_THEMED_ICONS, 0, R.string.themed_icons).isCheckable = true
+        menu.menu.findItem(MENU_THEMED_ICONS).isChecked = icons.themed
+        menu.menu.add(0, MENU_SYSTEM_WALLPAPER, 1, R.string.system_wallpaper).isCheckable = true
+        menu.menu.findItem(MENU_SYSTEM_WALLPAPER).isChecked = prefs.getBoolean(KEY_SYSTEM_WALLPAPER, false)
+        menu.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                MENU_THEMED_ICONS -> {
+                    icons.themed = !icons.themed
+                    prefs.edit().putBoolean(KEY_THEMED_ICONS, icons.themed).apply()
+                    icons.clear()
+                    adapter.notifyDataSetChanged()
+                    renderFavorites()
+                }
+                MENU_SYSTEM_WALLPAPER -> {
+                    prefs.edit().putBoolean(KEY_SYSTEM_WALLPAPER, !item.isChecked).apply()
+                    applyWallpaperMode()
+                }
+            }
+            true
+        }
+        menu.show()
+    }
+
+    /**
+     * Our own drawn wallpaper by default; the system one only on request, since showing it makes
+     * Android composite a full-screen wallpaper layer under the launcher.
+     */
+    private fun applyWallpaperMode() {
+        val system = prefs.getBoolean(KEY_SYSTEM_WALLPAPER, false)
+        home.drawWallpaper = !system
+        if (system) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+            window.setBackgroundDrawable(ColorDrawable(0))
+            root.background = null
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+            window.setBackgroundDrawable(ColorDrawable(BLACK))
+            root.setBackgroundColor(BLACK)
+        }
     }
 
     private fun hideKeyboard() {
@@ -226,7 +335,12 @@ class LauncherActivity : Activity() {
                 }
             }
             apps.sortWith { a, b -> collator.compare(a.label, b.label) }
-            val defaults = if (firstRun) defaultFavorites(apps) else null
+            val defaultApps = defaultApps()
+            IconTheme.roles = defaultApps
+            val me = Process.myUserHandle()
+            val defaults = if (firstRun) {
+                defaultApps.keys.mapNotNull { pkg -> apps.firstOrNull { it.packageName == pkg && it.user == me }?.key }
+            } else null
             main.post {
                 if (generation != loadGeneration || isDestroyed) return@post
                 allApps = apps
@@ -237,20 +351,25 @@ class LauncherActivity : Activity() {
         }
     }
 
-    /** First run: the default phone, messages, browser and camera apps, as Phosh's favorites. */
-    private fun defaultFavorites(apps: List<App>): List<String> {
-        val intents = listOf(
-            Intent(Intent.ACTION_DIAL),
-            Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")),
-            Intent(Intent.ACTION_VIEW, Uri.parse("https://")),
-            Intent(MediaStore.ACTION_IMAGE_CAPTURE),
+    /**
+     * The default phone, messages, browser and camera apps, each with its postmarketOS-style
+     * icon. They're also the first-run favorites, like Phosh's.
+     */
+    private fun defaultApps(): Map<String, Int> {
+        val roles = listOf(
+            Intent(Intent.ACTION_DIAL) to R.drawable.pm_dialer,
+            Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")) to R.drawable.pm_messages,
+            Intent(Intent.ACTION_VIEW, Uri.parse("https://")) to R.drawable.pm_browser,
+            Intent(MediaStore.ACTION_IMAGE_CAPTURE) to R.drawable.pm_camera,
         )
-        val me = Process.myUserHandle()
-        return intents.mapNotNull { intent ->
+        val result = LinkedHashMap<String, Int>()
+        for ((intent, icon) in roles) {
             val pkg = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
-                ?.activityInfo?.packageName ?: return@mapNotNull null
-            apps.firstOrNull { it.packageName == pkg && it.user == me }?.key
-        }.distinct()
+                ?.activityInfo?.packageName ?: continue
+            // "android" is the chooser shown when no default is set.
+            if (pkg != "android" && pkg !in result) result[pkg] = icon
+        }
+        return result
     }
 
     private fun applyFilter() {
@@ -265,17 +384,22 @@ class LauncherActivity : Activity() {
         favoritesDivider.visibility = favoritesRow.visibility
     }
 
+    /** Favorites appear twice: in the home screen's dock and at the top of the drawer. */
     private fun renderFavorites() {
-        favoritesRow.removeAllViews()
         val byKey = allApps.associateBy { it.key }
-        for (app in favorites.mapNotNull { byKey[it] }.take(MAX_FAVORITES)) {
-            val cell = LayoutInflater.from(this).inflate(R.layout.item_app, favoritesRow, false) as TextView
-            cell.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            cell.text = app.label
-            icons.bind(cell, app)
-            cell.setOnClickListener { launch(app, it) }
-            cell.setOnLongClickListener { showAppMenu(app, it); true }
-            favoritesRow.addView(cell)
+        val apps = favorites.mapNotNull { byKey[it] }.take(MAX_FAVORITES)
+        for (row in listOf(dock, favoritesRow)) {
+            row.removeAllViews()
+            for (app in apps) {
+                val cell = LayoutInflater.from(this).inflate(R.layout.item_app, row, false) as TextView
+                cell.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                cell.text = app.label
+                if (row === dock) cell.setShadowLayer(3f, 0f, 1f, 0x99000000.toInt())
+                icons.bind(cell, app)
+                cell.setOnClickListener { launch(app, it) }
+                cell.setOnLongClickListener { showAppMenu(app, it); true }
+                row.addView(cell)
+            }
         }
         applyFilter()
     }
@@ -364,5 +488,11 @@ class LauncherActivity : Activity() {
         const val MENU_FAVORITE = 1
         const val MENU_INFO = 2
         const val MENU_UNINSTALL = 3
+        const val MENU_THEMED_ICONS = 4
+        const val MENU_SYSTEM_WALLPAPER = 5
+        const val KEY_THEMED_ICONS = "themed_icons"
+        const val KEY_SYSTEM_WALLPAPER = "system_wallpaper"
+        const val ANIMATION_MS = 200L
+        const val BLACK = 0xff000000.toInt()
     }
 }

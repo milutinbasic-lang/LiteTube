@@ -24,12 +24,13 @@ import java.util.Locale
  * so it costs nothing when you're in another app.
  */
 @Suppress("DEPRECATION") // The old, permission-free APIs still work and keep minSdk 21.
-class StatusMonitor(private val context: Context, private val bar: TopBarView) {
+class StatusMonitor(private val context: Context, private val bar: TopBarView, private val home: HomeView) {
 
     private val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     private val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager?
     private val telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
     private var clockFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    private var dateFormat = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
     private var signalLevel = -1
 
     private val receiver = object : BroadcastReceiver() {
@@ -90,10 +91,17 @@ class StatusMonitor(private val context: Context, private val bar: TopBarView) {
 
     private fun updateClockFormat() {
         val pattern = if (DateFormat.is24HourFormat(context)) "HH:mm" else "h:mm"
-        clockFormat = SimpleDateFormat(pattern, Locale.getDefault())
+        val locale = Locale.getDefault()
+        clockFormat = SimpleDateFormat(pattern, locale)
+        dateFormat = SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "EEEEMMMMd"), locale)
     }
 
-    private fun updateClock() = bar.setTime(clockFormat.format(Date()))
+    private fun updateClock() {
+        val now = Date()
+        val time = clockFormat.format(now)
+        bar.setTime(time)
+        home.setTime(time, dateFormat.format(now))
+    }
 
     private fun onBattery(intent: Intent) {
         if (intent.action != Intent.ACTION_BATTERY_CHANGED) return
