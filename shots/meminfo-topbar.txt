@@ -1,0 +1,50 @@
+Applications Memory Usage (in Kilobytes):
+Uptime: 97863 Realtime: 97863
+
+** MEMINFO in pid 5832 [io.github.milutinbasic_lang.litelauncher.topbar] **
+                   Pss  Private  Private  SwapPss      Rss     Heap     Heap     Heap
+                 Total    Dirty    Clean    Dirty    Total     Size    Alloc     Free
+                ------   ------   ------   ------   ------   ------   ------   ------
+  Native Heap    11134    11104        4       35    12416    21480    15249     1267
+  Dalvik Heap      910      844        8      207     1892     4253     2127     2126
+ Dalvik Other      525      520        0       61      656                           
+        Stack      372      372        0        0      376                           
+       Ashmem        9        0        0        0      532                           
+    Other dev        9        4        4        0      248                           
+     .so mmap     1823      240        8        2    31756                           
+    .jar mmap      917        0       52        0    26164                           
+    .apk mmap       36        0        0        0      916                           
+    .ttf mmap       31        0        0        0      316                           
+    .dex mmap       47        4       36        0      804                           
+    .oat mmap      390        0       44        0    12580                           
+    .art mmap      628      356        4      146    18120                           
+   Other mmap      122        8        0        0     1512                           
+      Unknown      462      460        0        2      824                           
+        TOTAL    17868    13912      160      453   109112    25733    17376     3393
+ 
+ App Summary
+                       Pss(KB)                        Rss(KB)
+                        ------                         ------
+           Java Heap:     1204                          20012
+         Native Heap:    11104                          12416
+                Code:      400                          72552
+               Stack:      372                            376
+            Graphics:        0                              0
+       Private Other:      992
+              System:     3796
+             Unknown:                                    3756
+ 
+           TOTAL PSS:    17868            TOTAL RSS:   109112       TOTAL SWAP PSS:      453
+ 
+ Objects
+               Views:        1         ViewRootImpl:        1
+         AppContexts:        5           Activities:        0
+              Assets:       21        AssetManagers:        0
+       Local Binders:       17        Proxy Binders:       37
+       Parcel memory:        5         Parcel count:       21
+    Death Recipients:        2             WebViews:        0
+ 
+ SQL
+         MEMORY_USED:        0
+  PAGECACHE_OVERFLOW:        0          MALLOC_SIZE:        0
+ 

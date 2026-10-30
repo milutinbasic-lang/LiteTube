@@ -1,0 +1,51 @@
+io.github.milutinbasic_lang.litelauncher.topbar/app.litelauncher.TopBarService
+ACCESSIBILITY MANAGER (dumpsys accessibility)
+
+currentUserId=0
+hasWindowMagnificationConnection=false
+Magnifier on display#0
+    MagnificationConfig[mode: 1, activated: false, scale: 1.0, centerX: 0.0, centerY: 0.0] 
+    Magnification region=SkRegion((2,2,318,638))
+    IdOfLastServiceToMagnify=-1
+    SupportWindowMagnification=true
+    WindowMagnificationConnectionState=DISCONNECTED
+User state[
+     attributes:{id=0, touchExplorationEnabled=false, serviceHandlesDoubleTap=false, requestMultiFingerGestures=false, requestTwoFingerPassthrough=false, sendMotionEventsEnabledfalse, displayMagnificationEnabled=false, autoclickEnabled=false, nonInteractiveUiTimeout=0, interactiveUiTimeout=0, installedServiceCount=4, magnificationModes={0=1}, magnificationCapabilities=3, audioDescriptionByDefaultEnabled=false, magnificationFollowTypingEnabled=true, alwaysOnMagnificationEnabled=true}
+     shortcut key:{}
+     button:{}
+     button target:{null}
+     Bound services:{Service[label=LiteLauncher top bar, feedbackType[FEEDBACK_GENERIC], capabilities=0, eventTypes=TYPE_WINDOW_STATE_CHANGED, notificationTimeout=100, requestA11yBtn=false]}
+     Enabled services:{{io.github.milutinbasic_lang.litelauncher.topbar/app.litelauncher.TopBarService}}
+     Binding services:{}
+     Crashed services:{}
+     Client list info:{
+          Client list callbacks: 15
+          Client list killed: false
+          Client list broadcasts count: -1
+          Registered clients:{
+[com.google.android.contacts][io.github.milutinbasic_lang.litelauncher.topbar][com.google.android.googlequicksearchbox][com.google.android.googlequicksearchbox][com.android.systemui][com.google.android.apps.youtube.music][com.google.android.inputmethod.latin][com.google.android.apps.nexuslauncher][com.google.android.apps.nexuslauncher][com.google.android.youtube][com.google.android.as][io.github.milutinbasic_lang.litelauncher][com.google.android.apps.wellbeing][com.google.android.apps.nexuslauncher][com.google.android.apps.nexuslauncher]}]
+
+Window attributes:[{10=AccessibilityWindowAttributes{mAccessibilityWindowTitle=DiscovermLocales=[en_US]}, 11=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 12=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 13=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 14=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 15=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 16=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 17=AccessibilityWindowAttributes{mAccessibilityWindowTitle=LiteLaunchermLocales=[en_US]}, 18=AccessibilityWindowAttributes{mAccessibilityWindowTitle=HomemLocales=[en_US]}, 19=AccessibilityWindowAttributes{mAccessibilityWindowTitle=LiteLauncher top barmLocales=[en_US]}}]
+Global client list info:{
+    Client list callbacks: 7
+    Client list killed: false
+    Client list broadcasts count: -1
+    Registered clients:{
+[com.google.android.permissioncontroller][com.android.settings, com.android.localtransport, com.android.keychain, com.android.location.fused, android, com.android.server.telecom, com.android.wallpaperbackup, com.android.dynsystem, com.android.providers.settings, com.android.emulator.multidisplay, com.android.inputdevices][com.android.keychain, com.android.inputdevices, android, com.android.wallpaperbackup, com.android.emulator.multidisplay, com.android.localtransport, com.android.settings, com.android.providers.settings, com.android.server.telecom, com.android.location.fused, com.android.dynsystem][com.android.systemui][com.google.android.gms, com.google.android.gsf][com.google.android.documentsui][com.google.android.googlesdksetup]
+
+Proxy manager state:
+    Number of proxy connections: 0
+    Registered proxy connections:
+Accessibility Display Listener:
+    SystemUI uid: 10168
+    1 valid display: 0
+  Window #2 Window{b8c2cdc u0 LiteLauncher top bar}:
+    mDisplayId=0 rootTaskId=1 mSession=Session{3ae65b0 5832:u0a10193} mClient=android.os.BinderProxy@aef4d4f
+    mOwnerUid=10193 showForAllUsers=false package=io.github.milutinbasic_lang.litelauncher.topbar appop=NONE
+    mAttrs={(0,0)(fillx48) gr=TOP START CENTER sim={adjust=pan} layoutInDisplayCutoutMode=always ty=2032 fmt=TRANSLUCENT
+--
+    WindowStateAnimator{ca2450 LiteLauncher top bar}:
+      mSurface=Surface(name=LiteLauncher top bar)/@0x3020649
+      Surface: shown=true layer=0 alpha=1.0 rect=(0.0,0.0)  transform=(1.0, 0.0, 0.0, 1.0)
+      mDrawState=HAS_DRAWN       mLastHidden=false
+      mEnterAnimationPending=false      mSystemDecorRect=[0,0][0,0]

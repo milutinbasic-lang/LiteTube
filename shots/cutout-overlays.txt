@@ -1,0 +1,6 @@
+[ ] com.android.internal.display.cutout.emulation.corner
+[ ] com.android.internal.display.cutout.emulation.double
+[ ] com.android.internal.display.cutout.emulation.hole
+[ ] com.android.internal.display.cutout.emulation.tall
+[ ] com.android.internal.display.cutout.emulation.emu01
+[ ] com.android.internal.display.cutout.emulation.waterfall

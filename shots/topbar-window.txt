@@ -1,0 +1,2 @@
+    mAttrs={(0,0)(fillx48) gr=TOP START CENTER sim={adjust=pan} layoutInDisplayCutoutMode=always ty=2032 fmt=TRANSLUCENT
+    Frames: parent=[0,0][320,640] display=[-100000,-100000][100000,100000] frame=[0,0][320,48] last=[0,0][320,48] insetsChanged=false

@@ -1,0 +1,12 @@
+    installPermissionsFixed=true
+    requested permissions:
+      android.permission.EXPAND_STATUS_BAR
+      android.permission.ACCESS_NETWORK_STATE
+      android.permission.ACCESS_WIFI_STATE
+      android.permission.REQUEST_DELETE_PACKAGES
+    install permissions:
+      android.permission.EXPAND_STATUS_BAR: granted=true
+      android.permission.ACCESS_NETWORK_STATE: granted=true
+      android.permission.REQUEST_DELETE_PACKAGES: granted=true
+      android.permission.ACCESS_WIFI_STATE: granted=true
+      runtime permissions:
