@@ -55,6 +55,9 @@ adb shell dumpsys meminfo "$PKG" > shots/meminfo.txt
 adb shell settings put secure enabled_accessibility_services "$PKG/app.litelauncher.TopBarService"
 adb shell settings put secure accessibility_enabled 1
 sleep 4
+adb shell settings get secure enabled_accessibility_services > shots/a11y.txt
+adb shell dumpsys accessibility >> shots/a11y.txt
+adb shell dumpsys window windows | grep -i -A3 "litelauncher top bar" >> shots/a11y.txt
 adb shell input keyevent KEYCODE_HOME
 sleep 3
 adb exec-out screencap -p > shots/8-everywhere-home.png
