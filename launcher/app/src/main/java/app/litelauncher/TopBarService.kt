@@ -8,6 +8,8 @@ import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.WindowInsets
@@ -19,10 +21,10 @@ import android.view.accessibility.AccessibilityEvent
  * postmarketOS.
  *
  * An accessibility service is the only way a normal app can draw over the status bar. This one
- * reads nothing on screen and gets no accessibility events worth mentioning: it only owns the
- * overlay window and, when you pull the bar down, asks Android to open notifications or quick
- * settings. The bar steps aside while an app is fullscreen (videos, camera), and its receivers
- * are off while the screen is.
+ * reads nothing on screen: it owns the overlay window, notices when the foreground window changes
+ * (to step aside while an app is fullscreen, like videos or the camera) and, when you pull the
+ * bar down, asks Android to open notifications or quick settings. Its receivers are off while
+ * the screen is, or while the bar is hidden.
  */
 class TopBarService : AccessibilityService() {
 
@@ -30,10 +32,17 @@ class TopBarService : AccessibilityService() {
     private var monitor: StatusMonitor? = null
     private var monitoring = false
     private var statusBarShown = true
+    private val handler = Handler(Looper.getMainLooper())
+    private val statusBarCheck = Runnable { checkStatusBar() }
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_SCREEN_ON) startMonitor() else stopMonitor()
+            if (intent.action == Intent.ACTION_SCREEN_ON) {
+                if (statusBarShown) startMonitor()
+                scheduleStatusBarCheck()
+            } else {
+                stopMonitor()
+            }
         }
     }
 
@@ -65,6 +74,7 @@ class TopBarService : AccessibilityService() {
         } catch (e: IllegalArgumentException) {
             // Never connected.
         }
+        handler.removeCallbacks(statusBarCheck)
         stopMonitor()
         bar?.let { windowManager().removeView(it) }
         bar = null
@@ -76,16 +86,12 @@ class TopBarService : AccessibilityService() {
         super.onConfigurationChanged(newConfig)
         // The status bar's height differs between portrait and landscape.
         bar?.let { windowManager().updateViewLayout(it, layoutParams()) }
+        scheduleStatusBarCheck()
     }
 
+    /** Apps switch, open dialogs or go fullscreen here; that's when the status bar may change. */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // TEMP diagnostics
-        if (Build.VERSION.SDK_INT >= 30) {
-            val insets = windowManager().currentWindowMetrics.windowInsets
-            android.util.Log.d("LLTopBar", "event ${event?.eventType} pkg=${event?.packageName} metricsVisible=" +
-                "${insets.isVisible(WindowInsets.Type.statusBars())} " +
-                "top=${insets.getInsetsIgnoringVisibility(WindowInsets.Type.statusBars()).top}")
-        }
+        if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) scheduleStatusBarCheck()
     }
 
     override fun onInterrupt() {}
@@ -130,26 +136,39 @@ class TopBarService : AccessibilityService() {
         return if (id != 0) resources.getDimensionPixelSize(id) else (24 * resources.displayMetrics.density).toInt()
     }
 
-    /** Hide while Android hides its status bar, i.e. while an app is fullscreen. */
+    /**
+     * Hide while Android hides its status bar, i.e. while an app is fullscreen.
+     *
+     * Android 11+ doesn't tell windows layered above the status bar (like this overlay) about it,
+     * so we ask what an ordinary app window would see, each time the foreground window changes.
+     * Apps often go fullscreen a moment after their window appears, hence the re-checks.
+     */
+    private fun scheduleStatusBarCheck() {
+        if (Build.VERSION.SDK_INT < 30) return
+        handler.removeCallbacks(statusBarCheck)
+        handler.post(statusBarCheck)
+        handler.postDelayed(statusBarCheck, 400)
+        handler.postDelayed(statusBarCheck, 1500)
+    }
+
+    private fun checkStatusBar() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            setStatusBarShown(windowManager().currentWindowMetrics.windowInsets.isVisible(WindowInsets.Type.statusBars()))
+        }
+    }
+
     @Suppress("DEPRECATION")
     private fun trackStatusBarVisibility(view: TopBarView) {
-        if (Build.VERSION.SDK_INT >= 30) {
-            view.setOnApplyWindowInsetsListener { v, insets ->
-                android.util.Log.d("LLTopBar", "insets visible=${insets.isVisible(WindowInsets.Type.statusBars())} " +
-                    "ignoring=${insets.getInsetsIgnoringVisibility(WindowInsets.Type.statusBars())}")
-                setStatusBarShown(true)
-                (v as TopBarView).cutouts = insets.displayCutout?.boundingRects ?: emptyList()
-                insets
-            }
-        } else {
+        if (Build.VERSION.SDK_INT < 30) {
+            // Before Android 11, every window hears about the status bar being hidden.
             view.setOnSystemUiVisibilityChangeListener { flags ->
                 setStatusBarShown(flags and View.SYSTEM_UI_FLAG_FULLSCREEN == 0)
             }
-            if (Build.VERSION.SDK_INT >= 28) {
-                view.setOnApplyWindowInsetsListener { v, insets ->
-                    (v as TopBarView).cutouts = insets.displayCutout?.boundingRects ?: emptyList()
-                    insets
-                }
+        }
+        if (Build.VERSION.SDK_INT >= 28) {
+            view.setOnApplyWindowInsetsListener { v, insets ->
+                (v as TopBarView).cutouts = insets.displayCutout?.boundingRects ?: emptyList()
+                insets
             }
         }
     }
