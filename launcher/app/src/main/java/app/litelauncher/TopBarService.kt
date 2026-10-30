@@ -80,10 +80,12 @@ class TopBarService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         // TEMP diagnostics
-        val list = try { windows } catch (e: Exception) { emptyList() }
-        android.util.Log.d("LLTopBar", "event ${event?.eventType} windows=" + list.joinToString { w ->
-            val r = android.graphics.Rect(); w.getBoundsInScreen(r); "[${w.type} '${w.title}' $r layer=${w.layer}]"
-        })
+        if (Build.VERSION.SDK_INT >= 30) {
+            val insets = windowManager().currentWindowMetrics.windowInsets
+            android.util.Log.d("LLTopBar", "event ${event?.eventType} pkg=${event?.packageName} metricsVisible=" +
+                "${insets.isVisible(WindowInsets.Type.statusBars())} " +
+                "top=${insets.getInsetsIgnoringVisibility(WindowInsets.Type.statusBars()).top}")
+        }
     }
 
     override fun onInterrupt() {}
