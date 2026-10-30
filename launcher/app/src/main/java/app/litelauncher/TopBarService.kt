@@ -91,7 +91,6 @@ class TopBarService : AccessibilityService() {
 
     /** Apps switch, open dialogs or go fullscreen here; that's when the status bar may change. */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        android.util.Log.d("LLTopBar", "event ${event?.eventType} ${event?.packageName} ${event?.className}") // TEMP
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) scheduleStatusBarCheck()
     }
 
@@ -121,7 +120,11 @@ class TopBarService : AccessibilityService() {
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
         PixelFormat.TRANSLUCENT,
     ).apply {
-        if (!statusBarShown) flags = flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        if (!statusBarShown) {
+            // Window alpha (applied by the compositor): a root view's own alpha isn't honoured.
+            alpha = 0f
+            flags = flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        }
         gravity = Gravity.TOP
         title = "LiteLauncher top bar"
         if (Build.VERSION.SDK_INT >= 30) {
@@ -154,9 +157,7 @@ class TopBarService : AccessibilityService() {
 
     private fun checkStatusBar() {
         if (Build.VERSION.SDK_INT >= 30) {
-            val v = windowManager().currentWindowMetrics.windowInsets.isVisible(WindowInsets.Type.statusBars())
-            android.util.Log.d("LLTopBar", "check visible=$v") // TEMP
-            setStatusBarShown(v)
+            setStatusBarShown(windowManager().currentWindowMetrics.windowInsets.isVisible(WindowInsets.Type.statusBars()))
         }
     }
 
@@ -181,10 +182,7 @@ class TopBarService : AccessibilityService() {
         statusBarShown = shown
         // The window itself stays (hiding it would also stop the insets that tell us when to come
         // back); it just turns invisible and lets touches through to the fullscreen app.
-        bar?.let {
-            it.alpha = if (shown) 1f else 0f
-            windowManager().updateViewLayout(it, layoutParams())
-        }
+        bar?.let { windowManager().updateViewLayout(it, layoutParams()) }
         if (shown) startMonitor() else stopMonitor()
     }
 
