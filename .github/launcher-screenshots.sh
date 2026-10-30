@@ -22,7 +22,7 @@ sleep 3
 adb exec-out screencap -p > shots/3-back-home.png
 
 # Open the drawer with the home bar, open Settings from it, then come back with Home.
-adb shell input tap $((W / 2)) $((H - 60))
+adb shell input tap $((W / 2)) $((H - 8))
 sleep 3
 adb exec-out screencap -p > shots/4-drawer-via-bar.png
 adb shell input keyevent KEYCODE_HOME
