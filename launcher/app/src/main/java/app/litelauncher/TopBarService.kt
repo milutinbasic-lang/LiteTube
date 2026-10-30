@@ -91,6 +91,7 @@ class TopBarService : AccessibilityService() {
 
     /** Apps switch, open dialogs or go fullscreen here; that's when the status bar may change. */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        android.util.Log.d("LLTopBar", "event ${event?.eventType} ${event?.packageName} ${event?.className}") // TEMP
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) scheduleStatusBarCheck()
     }
 
@@ -153,7 +154,9 @@ class TopBarService : AccessibilityService() {
 
     private fun checkStatusBar() {
         if (Build.VERSION.SDK_INT >= 30) {
-            setStatusBarShown(windowManager().currentWindowMetrics.windowInsets.isVisible(WindowInsets.Type.statusBars()))
+            val v = windowManager().currentWindowMetrics.windowInsets.isVisible(WindowInsets.Type.statusBars())
+            android.util.Log.d("LLTopBar", "check visible=$v") // TEMP
+            setStatusBarShown(v)
         }
     }
 
