@@ -53,17 +53,26 @@ class StatusMonitor(private val context: Context, private val bar: TopBarView, p
         }
     }
 
-    fun start() {
+    private var watchingBar = false
+
+    /**
+     * [withBar] is false when Android's own status bar is used instead of our top bar: then only
+     * the home screen's clock needs updating, so battery, network and signal aren't watched.
+     */
+    fun start(withBar: Boolean) {
+        watchingBar = withBar
         updateClockFormat()
         updateClock()
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_TIME_TICK)
             addAction(Intent.ACTION_TIME_CHANGED)
             addAction(Intent.ACTION_TIMEZONE_CHANGED)
-            addAction(Intent.ACTION_BATTERY_CHANGED)
-            addAction(ConnectivityManager.CONNECTIVITY_ACTION)
-            addAction(WifiManager.RSSI_CHANGED_ACTION)
-            addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+            if (withBar) {
+                addAction(Intent.ACTION_BATTERY_CHANGED)
+                addAction(ConnectivityManager.CONNECTIVITY_ACTION)
+                addAction(WifiManager.RSSI_CHANGED_ACTION)
+                addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+            }
         }
         // Battery is a sticky broadcast, so registering also delivers the current level.
         val sticky = if (Build.VERSION.SDK_INT >= 33) {
@@ -71,6 +80,7 @@ class StatusMonitor(private val context: Context, private val bar: TopBarView, p
         } else {
             context.registerReceiver(receiver, filter)
         }
+        if (!withBar) return
         sticky?.let(::onBattery)
         signalLevel = -1
         try {
@@ -83,6 +93,7 @@ class StatusMonitor(private val context: Context, private val bar: TopBarView, p
 
     fun stop() {
         context.unregisterReceiver(receiver)
+        if (!watchingBar) return
         try {
             telephony?.listen(phoneListener, PhoneStateListener.LISTEN_NONE)
         } catch (e: RuntimeException) {

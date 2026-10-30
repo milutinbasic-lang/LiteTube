@@ -46,8 +46,10 @@ CPU, memory or battery.
   close it. After you open an app, Home brings you back to the home screen.
 - **Tap** an app to open it. **Long-press** for *Add to / Remove from Favorites*, *App Info* and
   *Uninstall*.
-- **Long-press the home screen** to switch off the postmarketOS icons or to show your system
-  wallpaper instead of the built-in one.
+- **Long-press the home screen** to switch off the postmarketOS icons, to show your system
+  wallpaper instead of the built-in one, or to choose **Use Android status bar**, which hides
+  LiteLauncher's top bar and shows your phone's own status bar instead (the launcher then also
+  stops watching battery and signal, since it has nothing to show them on).
 - **Search**: start typing; names that start with what you typed come first. Press *Go* on the
   keyboard to open the first match.
 - On first launch the favorites are your default phone, messages, browser and camera apps.

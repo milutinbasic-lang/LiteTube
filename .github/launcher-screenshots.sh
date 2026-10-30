@@ -29,6 +29,26 @@ adb shell input keyevent KEYCODE_HOME
 sleep 4
 adb exec-out screencap -p > shots/5-home-again.png
 
+# Long-press the wallpaper for the launcher menu.
+adb shell input swipe $((W / 2)) $((H / 2)) $((W / 2)) $((H / 2)) 1200
+sleep 2
+adb exec-out screencap -p > shots/6-home-menu.png
+
+# Turn on "Use Android status bar" from that menu.
+adb shell uiautomator dump /sdcard/ui.xml > /dev/null
+adb shell cat /sdcard/ui.xml > shots/ui-menu.xml
+B=$(grep -o 'text="Use Android status bar"[^>]*bounds="\[[0-9]*,[0-9]*\]\[[0-9]*,[0-9]*\]"' shots/ui-menu.xml \
+  | grep -o 'bounds="[^"]*"' | grep -o '[0-9]\+' | tr '\n' ' ')
+read -r X1 Y1 X2 Y2 <<< "$B"
+if [ -n "$X1" ]; then
+  adb shell input tap $(((X1 + X2) / 2)) $(((Y1 + Y2) / 2))
+  sleep 3
+  adb exec-out screencap -p > shots/7-android-status-bar.png
+else
+  echo "menu item not found" >> shots/errors.txt
+  adb shell input keyevent KEYCODE_BACK
+fi
+
 adb shell dumpsys meminfo "$PKG" > shots/meminfo.txt
 adb logcat -d > shots/logcat.txt
 grep -E "FATAL|AndroidRuntime|litelauncher" shots/logcat.txt | head -50 > shots/errors.txt

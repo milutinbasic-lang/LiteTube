@@ -60,6 +60,7 @@ class LauncherActivity : Activity() {
     private lateinit var dock: LinearLayout
     private lateinit var drawer: View
     private lateinit var homeBar: HomeBarView
+    private lateinit var topBar: TopBarView
     private lateinit var search: EditText
     private lateinit var favoritesRow: LinearLayout
     private lateinit var favoritesDivider: View
@@ -109,7 +110,7 @@ class LauncherActivity : Activity() {
         home.onSwipeUp = ::openDrawer
         home.onLongPress = ::showHomeMenu
 
-        val topBar = findViewById<TopBarView>(R.id.top_bar)
+        topBar = findViewById(R.id.top_bar)
         status = StatusMonitor(this, topBar, home)
         topBar.onPull = ::expandStatusBar
 
@@ -139,20 +140,17 @@ class LauncherActivity : Activity() {
         grid.setOnTouchListener(PullDownToClose())
 
         setUpWindow()
+        applyStatusBarMode()
         applyWallpaperMode()
         favorites = prefs.getString(KEY_FAVORITES, null)?.split('\n')?.filter { it.isNotEmpty() } ?: emptyList()
         launcherApps.registerCallback(packageCallback, main)
     }
 
-    /** Hide Android's status bar (our top bar replaces it) and lay out around cutouts and the nav bar. */
-    @Suppress("DEPRECATION")
+    /** Lay out around cutouts, the nav bar and the keyboard; see [applyStatusBarMode] for the top. */
     private fun setUpWindow() {
         if (Build.VERSION.SDK_INT >= 30) {
             window.setDecorFitsSystemWindows(false)
-            window.insetsController?.let {
-                it.hide(WindowInsets.Type.statusBars())
-                it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
+            window.insetsController?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             root.setOnApplyWindowInsetsListener { v, insets ->
                 val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
                 val ime = insets.getInsets(WindowInsets.Type.ime())
@@ -164,7 +162,7 @@ class LauncherActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
-        status.start()
+        status.start(withBar = !useSystemStatusBar())
     }
 
     override fun onResume() {
@@ -275,8 +273,16 @@ class LauncherActivity : Activity() {
         menu.menu.findItem(MENU_THEMED_ICONS).isChecked = icons.themed
         menu.menu.add(0, MENU_SYSTEM_WALLPAPER, 1, R.string.system_wallpaper).isCheckable = true
         menu.menu.findItem(MENU_SYSTEM_WALLPAPER).isChecked = prefs.getBoolean(KEY_SYSTEM_WALLPAPER, false)
+        menu.menu.add(0, MENU_SYSTEM_STATUS_BAR, 2, R.string.system_status_bar).isCheckable = true
+        menu.menu.findItem(MENU_SYSTEM_STATUS_BAR).isChecked = useSystemStatusBar()
         menu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                MENU_SYSTEM_STATUS_BAR -> {
+                    prefs.edit().putBoolean(KEY_SYSTEM_STATUS_BAR, !item.isChecked).apply()
+                    status.stop()
+                    status.start(withBar = !useSystemStatusBar())
+                    applyStatusBarMode()
+                }
                 MENU_THEMED_ICONS -> {
                     icons.themed = !icons.themed
                     prefs.edit().putBoolean(KEY_THEMED_ICONS, icons.themed).apply()
@@ -292,6 +298,27 @@ class LauncherActivity : Activity() {
             true
         }
         menu.show()
+    }
+
+    private fun useSystemStatusBar() = prefs.getBoolean(KEY_SYSTEM_STATUS_BAR, false)
+
+    /**
+     * Phosh's top bar replaces Android's status bar by default. With "Use Android status bar"
+     * (for phones whose own bar you prefer), our bar is removed and Android's is shown instead.
+     */
+    @Suppress("DEPRECATION")
+    private fun applyStatusBarMode() {
+        val system = useSystemStatusBar()
+        topBar.visibility = if (system) View.GONE else View.VISIBLE
+        if (Build.VERSION.SDK_INT >= 30) {
+            window.insetsController?.let {
+                if (system) it.show(WindowInsets.Type.statusBars()) else it.hide(WindowInsets.Type.statusBars())
+            }
+        } else if (system) {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        } else {
+            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        }
     }
 
     /**
@@ -490,6 +517,8 @@ class LauncherActivity : Activity() {
         const val MENU_UNINSTALL = 3
         const val MENU_THEMED_ICONS = 4
         const val MENU_SYSTEM_WALLPAPER = 5
+        const val MENU_SYSTEM_STATUS_BAR = 6
+        const val KEY_SYSTEM_STATUS_BAR = "system_status_bar"
         const val KEY_THEMED_ICONS = "themed_icons"
         const val KEY_SYSTEM_WALLPAPER = "system_wallpaper"
         const val ANIMATION_MS = 200L
