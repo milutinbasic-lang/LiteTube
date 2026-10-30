@@ -125,7 +125,9 @@ class TopBarService : AccessibilityService() {
             alpha = 0f
             flags = flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         }
-        gravity = Gravity.TOP
+        gravity = Gravity.TOP or Gravity.START
+        x = 0
+        y = 0
         title = "LiteLauncher top bar"
         if (Build.VERSION.SDK_INT >= 30) {
             fitInsetsTypes = 0
@@ -135,9 +137,22 @@ class TopBarService : AccessibilityService() {
         }
     }
 
+    /**
+     * The real status bar's height. On phones with a camera cutout it's taller than the
+     * status_bar_height resource, so on Android 11+ ask the window manager instead.
+     */
     private fun statusBarHeight(): Int {
+        if (Build.VERSION.SDK_INT >= 30) {
+            val insets = windowManager().currentWindowMetrics.windowInsets
+            val top = maxOf(
+                insets.getInsetsIgnoringVisibility(WindowInsets.Type.statusBars()).top,
+                insets.getInsets(WindowInsets.Type.displayCutout()).top,
+            )
+            if (top > 0) return top
+        }
         val id = resources.getIdentifier("status_bar_height", "dimen", "android")
-        return if (id != 0) resources.getDimensionPixelSize(id) else (24 * resources.displayMetrics.density).toInt()
+        val fromResource = if (id != 0) resources.getDimensionPixelSize(id) else 0
+        return maxOf(fromResource, (24 * resources.displayMetrics.density).toInt())
     }
 
     /**

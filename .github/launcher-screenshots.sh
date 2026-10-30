@@ -3,6 +3,10 @@
 set -x
 PKG=io.github.milutinbasic_lang.litelauncher
 mkdir -p shots
+# Emulate a phone with a camera notch in the middle of the top edge (the hardest case).
+adb shell cmd overlay list | grep -i cutout > shots/cutout-overlays.txt
+adb shell cmd overlay enable com.android.internal.display.cutout.emulation.tall
+sleep 3
 adb install -r launcher/app/build/outputs/apk/release/app-release.apk
 adb shell cmd package set-home-activity "$PKG/app.litelauncher.LauncherActivity"
 adb shell settings put global window_animation_scale 1
@@ -64,6 +68,7 @@ adb exec-out screencap -p > shots/8-everywhere-home.png
 adb shell am start -a android.settings.SETTINGS
 sleep 5
 adb exec-out screencap -p > shots/9-everywhere-settings.png
+adb shell dumpsys window windows | grep -A14 "Window{.*LiteLauncher top bar" | grep -E "mAttrs|frame=" > shots/topbar-window.txt
 # Tapping the left half of our bar should open Android's notifications.
 adb shell input tap $((W / 6)) 10
 sleep 3

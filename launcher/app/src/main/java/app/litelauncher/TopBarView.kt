@@ -26,6 +26,13 @@ class TopBarView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
 
     var onPull: ((quickSettings: Boolean) -> Unit)? = null
 
+    /**
+     * Height of a camera cutout at the top of the screen. Like Android's status bar, the bar then
+     * starts at the very top and grows to cover the cutout's strip, instead of sitting below it.
+     */
+    var cutoutHeight = 0
+        set(value) { if (field != value) { field = value; requestLayout() } }
+
     /** Camera cutouts (in view coordinates) to keep the clock out of. */
     var cutouts: List<Rect> = emptyList()
         set(value) { field = value; invalidate() }
@@ -80,7 +87,7 @@ class TopBarView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
         val height = if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY) {
             MeasureSpec.getSize(heightMeasureSpec)
         } else {
-            barHeight + paddingTop
+            maxOf(barHeight, cutoutHeight) + paddingTop
         }
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), height)
     }

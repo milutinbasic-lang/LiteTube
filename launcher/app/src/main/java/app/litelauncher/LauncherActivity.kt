@@ -152,16 +152,47 @@ class LauncherActivity : Activity() {
         TopBarService.onStateChanged = ::applyStatusBarMode
     }
 
-    /** Lay out around cutouts, the nav bar and the keyboard; see [applyStatusBarMode] for the top. */
+    /**
+     * Lay out around the nav bar and the keyboard; see [applyStatusBarMode] for the top.
+     *
+     * The window extends into a camera cutout's strip (otherwise Android 9-14 would push the whole
+     * launcher, top bar included, down below the cutout). Our top bar then covers that strip itself,
+     * starting at the very top of the screen, just like Android's status bar does.
+     */
+    @Suppress("DEPRECATION")
     private fun setUpWindow() {
+        if (Build.VERSION.SDK_INT >= 28) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode = if (Build.VERSION.SDK_INT >= 30) {
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                } else {
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+            }
+        }
         if (Build.VERSION.SDK_INT >= 30) {
             window.setDecorFitsSystemWindows(false)
             window.insetsController?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             root.setOnApplyWindowInsetsListener { v, insets ->
-                val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+                val bars = insets.getInsets(WindowInsets.Type.systemBars())
+                val cutout = insets.getInsets(WindowInsets.Type.displayCutout())
                 val ime = insets.getInsets(WindowInsets.Type.ime())
-                v.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+                // Android's status bar (when shown) already covers the cutout's strip; otherwise
+                // our top bar does, so the root isn't pushed down for it.
+                v.setPadding(
+                    maxOf(bars.left, cutout.left), bars.top, maxOf(bars.right, cutout.right),
+                    maxOf(bars.bottom, ime.bottom),
+                )
+                topBar.cutoutHeight = cutout.top
+                topBar.cutouts = insets.displayCutout?.boundingRects ?: emptyList()
                 insets
+            }
+        } else if (Build.VERSION.SDK_INT >= 28) {
+            root.setOnApplyWindowInsetsListener { v, insets ->
+                val cutout = insets.displayCutout
+                topBar.cutoutHeight = if (ownBarHidden) 0 else cutout?.safeInsetTop ?: 0
+                topBar.cutouts = cutout?.boundingRects ?: emptyList()
+                v.onApplyWindowInsets(insets)
             }
         }
     }
