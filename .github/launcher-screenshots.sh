@@ -50,6 +50,29 @@ else
 fi
 
 adb shell dumpsys meminfo "$PKG" > shots/meminfo.txt
+
+# "Top bar in all apps": turn the accessibility service on as the Settings screen would.
+adb shell settings put secure enabled_accessibility_services "$PKG/app.litelauncher.TopBarService"
+adb shell settings put secure accessibility_enabled 1
+sleep 4
+adb shell input keyevent KEYCODE_HOME
+sleep 3
+adb exec-out screencap -p > shots/8-everywhere-home.png
+adb shell am start -a android.settings.SETTINGS
+sleep 5
+adb exec-out screencap -p > shots/9-everywhere-settings.png
+# Tapping the left half of our bar should open Android's notifications.
+adb shell input tap $((W / 6)) 10
+sleep 3
+adb exec-out screencap -p > shots/10-everywhere-tap-bar.png
+adb shell cmd statusbar collapse
+sleep 2
+adb shell am start -a android.media.action.STILL_IMAGE_CAMERA
+sleep 8
+adb exec-out screencap -p > shots/11-everywhere-camera.png
+adb shell input keyevent KEYCODE_HOME
+sleep 2
+adb shell dumpsys meminfo "$PKG" > shots/meminfo-everywhere.txt
 adb logcat -d > shots/logcat.txt
 grep -E "FATAL|AndroidRuntime|litelauncher" shots/logcat.txt | head -50 > shots/errors.txt
 true

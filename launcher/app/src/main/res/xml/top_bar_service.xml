@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only needs to draw over the status bar: reads no window content, and subscribes to a single
+     rare event type (one must be given) that it ignores. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAnnouncement"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:canRetrieveWindowContent="false"
+    android:description="@string/top_bar_service_description"
+    android:notificationTimeout="1000"
+    android:summary="@string/top_bar_service_summary" />

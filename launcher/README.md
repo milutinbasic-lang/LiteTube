@@ -50,6 +50,17 @@ CPU, memory or battery.
   wallpaper instead of the built-in one, or to choose **Use Android status bar**, which hides
   LiteLauncher's top bar and shows your phone's own status bar instead (the launcher then also
   stops watching battery and signal, since it has nothing to show them on).
+- **Top bar in all apps**: long-press the home screen → *Top bar in all apps* puts the
+  launcher's top bar over Android's status bar everywhere, like Phosh's panel on postmarketOS.
+  Android only lets an app cover the status bar as an *accessibility service*, so you turn on
+  *LiteLauncher top bar* once in *Settings → Accessibility* (the menu takes you there). It reads
+  nothing on your screen; it only draws the bar, and pulling it down opens Android's notifications
+  (left half) or quick settings (right half). It moves the clock to the left if a camera notch is in
+  the middle, steps aside while an app is fullscreen (videos, camera), and stops its updates while
+  the screen is off.
+  - On Android 13+, a sideloaded app's accessibility switch may be greyed out as a *restricted
+    setting*: open *Settings → Apps → LiteLauncher → ⋮ → Allow restricted settings*, then try again.
+  - Notification icons aren't shown in the bar (pull it down to see notifications).
 - **Search**: start typing; names that start with what you typed come first. Press *Go* on the
   keyboard to open the first match.
 - On first launch the favorites are your default phone, messages, browser and camera apps.

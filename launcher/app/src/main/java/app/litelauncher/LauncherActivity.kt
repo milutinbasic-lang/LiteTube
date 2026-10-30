@@ -3,6 +3,7 @@ package app.litelauncher
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityOptions
+import android.app.AlertDialog
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
@@ -21,6 +22,7 @@ import android.os.Process
 import android.os.UserHandle
 import android.os.UserManager
 import android.provider.MediaStore
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -76,6 +78,9 @@ class LauncherActivity : Activity() {
     private var appsDirty = true
     private var resumed = false
     private var drawerOpen = false
+    private var started = false
+    /** Whether our own top bar is currently replaced by Android's status bar (or the service's). */
+    private var ownBarHidden = false
     private var loadGeneration = 0
 
     private val packageCallback = object : LauncherApps.Callback() {
@@ -144,6 +149,7 @@ class LauncherActivity : Activity() {
         applyWallpaperMode()
         favorites = prefs.getString(KEY_FAVORITES, null)?.split('\n')?.filter { it.isNotEmpty() } ?: emptyList()
         launcherApps.registerCallback(packageCallback, main)
+        TopBarService.onStateChanged = ::applyStatusBarMode
     }
 
     /** Lay out around cutouts, the nav bar and the keyboard; see [applyStatusBarMode] for the top. */
@@ -162,13 +168,16 @@ class LauncherActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
-        status.start(withBar = !useSystemStatusBar())
+        started = true
+        status.start(withBar = !ownBarHidden)
     }
 
     override fun onResume() {
         super.onResume()
         resumed = true
         if (appsDirty) reloadApps()
+        // The user may have just turned the top bar service on or off in Settings.
+        applyStatusBarMode()
     }
 
     override fun onPause() {
@@ -177,6 +186,7 @@ class LauncherActivity : Activity() {
     }
 
     override fun onStop() {
+        started = false
         status.stop()
         // Like Phosh, coming back after opening an app lands on the home screen.
         closeDrawer(false)
@@ -184,6 +194,7 @@ class LauncherActivity : Activity() {
     }
 
     override fun onDestroy() {
+        if (TopBarService.onStateChanged == ::applyStatusBarMode) TopBarService.onStateChanged = null
         launcherApps.unregisterCallback(packageCallback)
         workerThread.quitSafely()
         super.onDestroy()
@@ -273,14 +284,19 @@ class LauncherActivity : Activity() {
         menu.menu.findItem(MENU_THEMED_ICONS).isChecked = icons.themed
         menu.menu.add(0, MENU_SYSTEM_WALLPAPER, 1, R.string.system_wallpaper).isCheckable = true
         menu.menu.findItem(MENU_SYSTEM_WALLPAPER).isChecked = prefs.getBoolean(KEY_SYSTEM_WALLPAPER, false)
-        menu.menu.add(0, MENU_SYSTEM_STATUS_BAR, 2, R.string.system_status_bar).isCheckable = true
-        menu.menu.findItem(MENU_SYSTEM_STATUS_BAR).isChecked = useSystemStatusBar()
+        val everywhere = TopBarService.instance != null
+        menu.menu.add(0, MENU_TOP_BAR_EVERYWHERE, 2, R.string.top_bar_everywhere).isCheckable = true
+        menu.menu.findItem(MENU_TOP_BAR_EVERYWHERE).isChecked = everywhere
+        menu.menu.add(0, MENU_SYSTEM_STATUS_BAR, 3, R.string.system_status_bar).isCheckable = true
+        menu.menu.findItem(MENU_SYSTEM_STATUS_BAR).apply {
+            isChecked = useSystemStatusBar() && !everywhere
+            isEnabled = !everywhere
+        }
         menu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                MENU_TOP_BAR_EVERYWHERE -> if (everywhere) turnOffTopBarService() else setUpTopBarService()
                 MENU_SYSTEM_STATUS_BAR -> {
                     prefs.edit().putBoolean(KEY_SYSTEM_STATUS_BAR, !item.isChecked).apply()
-                    status.stop()
-                    status.start(withBar = !useSystemStatusBar())
                     applyStatusBarMode()
                 }
                 MENU_THEMED_ICONS -> {
@@ -302,13 +318,45 @@ class LauncherActivity : Activity() {
 
     private fun useSystemStatusBar() = prefs.getBoolean(KEY_SYSTEM_STATUS_BAR, false)
 
+    private fun setUpTopBarService() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.top_bar_setup_title)
+            .setMessage(R.string.top_bar_setup_message)
+            .setPositiveButton(R.string.open_settings) { _, _ -> openAccessibilitySettings() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun turnOffTopBarService() {
+        if (Build.VERSION.SDK_INT >= 24) {
+            TopBarService.instance?.turnOff()
+        } else {
+            Toast.makeText(this, R.string.turn_off_in_settings, Toast.LENGTH_LONG).show()
+            openAccessibilitySettings()
+        }
+    }
+
+    private fun openAccessibilitySettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        } catch (e: Exception) {
+        }
+    }
+
     /**
      * Phosh's top bar replaces Android's status bar by default. With "Use Android status bar"
      * (for phones whose own bar you prefer), our bar is removed and Android's is shown instead.
+     * With the top bar service on, Android's bar is also shown here, with the service's copy of
+     * our bar drawn over it, so the launcher looks the same as every other app.
      */
     @Suppress("DEPRECATION")
     private fun applyStatusBarMode() {
-        val system = useSystemStatusBar()
+        val system = useSystemStatusBar() || TopBarService.instance != null
+        if (system != ownBarHidden && started) {
+            status.stop()
+            status.start(withBar = !system)
+        }
+        ownBarHidden = system
         topBar.visibility = if (system) View.GONE else View.VISIBLE
         if (Build.VERSION.SDK_INT >= 30) {
             window.insetsController?.let {
@@ -518,6 +566,7 @@ class LauncherActivity : Activity() {
         const val MENU_THEMED_ICONS = 4
         const val MENU_SYSTEM_WALLPAPER = 5
         const val MENU_SYSTEM_STATUS_BAR = 6
+        const val MENU_TOP_BAR_EVERYWHERE = 7
         const val KEY_SYSTEM_STATUS_BAR = "system_status_bar"
         const val KEY_THEMED_ICONS = "themed_icons"
         const val KEY_SYSTEM_WALLPAPER = "system_wallpaper"

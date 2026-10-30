@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.util.AttributeSet
@@ -24,6 +25,10 @@ import kotlin.math.abs
 class TopBarView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
 
     var onPull: ((quickSettings: Boolean) -> Unit)? = null
+
+    /** Camera cutouts (in view coordinates) to keep the clock out of. */
+    var cutouts: List<Rect> = emptyList()
+        set(value) { field = value; invalidate() }
 
     private val dp = resources.displayMetrics.density
     private val barHeight = (26 * dp).toInt()
@@ -71,21 +76,38 @@ class TopBarView(context: Context, attrs: AttributeSet?) : View(context, attrs) 
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), barHeight + paddingTop)
+        // As an overlay on Android's status bar, the window gives us that bar's exact height.
+        val height = if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY) {
+            MeasureSpec.getSize(heightMeasureSpec)
+        } else {
+            barHeight + paddingTop
+        }
+        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), height)
     }
 
     override fun onDraw(canvas: Canvas) {
         val top = paddingTop.toFloat()
-        val h = barHeight.toFloat()
+        val h = (height - paddingTop).toFloat()
         val baseline = top + h / 2 - (textPaint.descent() + textPaint.ascent()) / 2
         val icon = 14 * dp
         val iconTop = top + (h - icon) / 2
         val pad = 10 * dp + paddingLeft
 
-        canvas.drawText(time, (width - textPaint.measureText(time)) / 2, baseline, textPaint)
-
-        // Left: mobile signal then Wi-Fi.
+        // Phosh centers the clock; if a camera notch is there, it goes on the left instead and
+        // the network icons move next to the battery.
+        val timeWidth = textPaint.measureText(time)
+        val centered = (width - timeWidth) / 2
+        val clockBlocked = cutouts.any { it.left < centered + timeWidth && it.right > centered }
         var x = pad
+        if (clockBlocked) {
+            canvas.drawText(time, pad, baseline, textPaint)
+        } else {
+            canvas.drawText(time, centered, baseline, textPaint)
+        }
+
+        // Network icons: on the left, or right of center when the clock took the left.
+        if (clockBlocked) x = width - 10 * dp - paddingRight - 8 * dp - textPaint.measureText("100%") - 12 * dp -
+            (if (signalLevel >= 0) icon + 6 * dp else 0f) - (if (wifiLevel >= 0) icon else 0f)
         if (signalLevel >= 0) {
             drawSignal(canvas, x, iconTop, icon)
             x += icon + 6 * dp

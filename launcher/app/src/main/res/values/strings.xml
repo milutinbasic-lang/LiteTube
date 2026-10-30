@@ -11,4 +11,12 @@
     <string name="themed_icons">postmarketOS icons</string>
     <string name="system_wallpaper">Use system wallpaper</string>
     <string name="system_status_bar">Use Android status bar</string>
+    <string name="top_bar_everywhere">Top bar in all apps</string>
+    <string name="top_bar_service_label">LiteLauncher top bar</string>
+    <string name="top_bar_service_summary">Shows LiteLauncher\'s top bar in place of the status bar in every app</string>
+    <string name="top_bar_service_description">Draws LiteLauncher\'s postmarketOS-style top bar over Android\'s status bar in every app. Pulling it down opens notifications (left half) or quick settings (right half). It reads nothing on your screen and collects no data. Android only lets an app draw over the status bar as an accessibility service.</string>
+    <string name="top_bar_setup_title">Top bar in all apps</string>
+    <string name="top_bar_setup_message">Android only lets an app cover the status bar as an accessibility service.\n\nOn the next screen, open \"LiteLauncher top bar\" and turn it on. It reads nothing on your screen.\n\nIf Android says the setting is restricted (Android 13 and newer, for apps not installed from a store): open Settings → Apps → LiteLauncher, tap ⋮ → \"Allow restricted settings\", then try again.</string>
+    <string name="open_settings">Open settings</string>
+    <string name="turn_off_in_settings">Turn off \"LiteLauncher top bar\" in Accessibility settings</string>
 </resources>
