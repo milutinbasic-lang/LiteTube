@@ -61,6 +61,9 @@ CPU, memory or battery.
   - On Android 13+, a sideloaded app's accessibility switch may be greyed out as a *restricted
     setting*: open *Settings → Apps → LiteLauncher → ⋮ → Allow restricted settings*, then try again.
   - Notification icons aren't shown in the bar (pull it down to see notifications).
+  - It notices fullscreen when an app opens a window or the phone rotates. A video player that
+    goes fullscreen with no new window and no rotation may keep the bar until the next window
+    change.
 - **Search**: start typing; names that start with what you typed come first. Press *Go* on the
   keyboard to open the first match.
 - On first launch the favorites are your default phone, messages, browser and camera apps.

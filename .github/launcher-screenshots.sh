@@ -73,11 +73,9 @@ sleep 2
 adb shell am start -a android.media.action.STILL_IMAGE_CAMERA
 sleep 8
 adb exec-out screencap -p > shots/11-everywhere-camera.png
-adb shell dumpsys window windows | grep -A14 "Window{.*LiteLauncher top bar" > shots/topbar-window.txt
 adb shell input keyevent KEYCODE_HOME
 sleep 2
 adb shell dumpsys meminfo "$PKG" > shots/meminfo-everywhere.txt
 adb logcat -d > shots/logcat.txt
-grep "LLTopBar" shots/logcat.txt > shots/topbar-debug.txt
 grep -E "FATAL|AndroidRuntime|litelauncher" shots/logcat.txt | head -50 > shots/errors.txt
 true

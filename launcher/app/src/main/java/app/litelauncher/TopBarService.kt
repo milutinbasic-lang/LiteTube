@@ -145,7 +145,8 @@ class TopBarService : AccessibilityService() {
      *
      * Android 11+ doesn't tell windows layered above the status bar (like this overlay) about it,
      * so we ask what an ordinary app window would see, each time the foreground window changes.
-     * Apps often go fullscreen a moment after their window appears, hence the re-checks.
+     * Apps often go fullscreen a moment (up to a few seconds) after their window appears, hence
+     * the re-checks.
      */
     private fun scheduleStatusBarCheck() {
         if (Build.VERSION.SDK_INT < 30) return
@@ -153,6 +154,7 @@ class TopBarService : AccessibilityService() {
         handler.post(statusBarCheck)
         handler.postDelayed(statusBarCheck, 400)
         handler.postDelayed(statusBarCheck, 1500)
+        handler.postDelayed(statusBarCheck, 3000)
     }
 
     private fun checkStatusBar() {
@@ -178,7 +180,6 @@ class TopBarService : AccessibilityService() {
     }
 
     private fun setStatusBarShown(shown: Boolean) {
-        android.util.Log.d("LLTopBar", "setStatusBarShown $shown (was $statusBarShown)") // TEMP
         if (shown == statusBarShown) return
         statusBarShown = shown
         // The window itself stays (hiding it would also stop the insets that tell us when to come
