@@ -78,7 +78,13 @@ class TopBarService : AccessibilityService() {
         bar?.let { windowManager().updateViewLayout(it, layoutParams()) }
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        // TEMP diagnostics
+        val list = try { windows } catch (e: Exception) { emptyList() }
+        android.util.Log.d("LLTopBar", "event ${event?.eventType} windows=" + list.joinToString { w ->
+            val r = android.graphics.Rect(); w.getBoundsInScreen(r); "[${w.type} '${w.title}' $r layer=${w.layer}]"
+        })
+    }
 
     override fun onInterrupt() {}
 
@@ -127,7 +133,9 @@ class TopBarService : AccessibilityService() {
     private fun trackStatusBarVisibility(view: TopBarView) {
         if (Build.VERSION.SDK_INT >= 30) {
             view.setOnApplyWindowInsetsListener { v, insets ->
-                setStatusBarShown(insets.isVisible(WindowInsets.Type.statusBars()))
+                android.util.Log.d("LLTopBar", "insets visible=${insets.isVisible(WindowInsets.Type.statusBars())} " +
+                    "ignoring=${insets.getInsetsIgnoringVisibility(WindowInsets.Type.statusBars())}")
+                setStatusBarShown(true)
                 (v as TopBarView).cutouts = insets.displayCutout?.boundingRects ?: emptyList()
                 insets
             }
